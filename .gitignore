@@ -1,0 +1,5 @@
+*.sln
+*.vcxproj
+*.o
+
+bin/
