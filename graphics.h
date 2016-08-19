@@ -468,6 +468,34 @@ void change_button_text(const char *button_text, const char *new_button_text);
  */
 void draw_message(void);
 
+/**
+ * @brief Enum to distinguish drawing to screen or to offscreen buffer.
+ */
+typedef enum {
+    ON_SCREEN = 0,
+    OFF_SCREEN
+} t_draw_to;
+
+/**
+ * @brief Changes what all the drawX functions draws to.
+ * 
+ * By default, drawX will draw straight to the screen. By setting this to
+ * draw off screen, all drawX commands will draw to an offscreen pixmap.
+ * When you've finished drawing everything to this pixmap, copy it to the
+ * screen using copy_off_screen_buffer_to_screen(). 
+ * (Don't blame us, we were told to use this name)
+ *
+ * @param[in] draw_mode ON_SCREEN || OFF_SCREEN
+ */
+void set_drawing_buffer(t_draw_to draw_mode);
+
+/**
+ * @brief Copies the offscreen buffer to the main screen.
+ *
+ * Call this function when you want to display the offscreen pixmap to the
+ * main screen.
+ */
+void copy_off_screen_buffer_to_screen();
 
 /**************** LEVEL OF DETAIL FUNCTIONS   **************************
  *

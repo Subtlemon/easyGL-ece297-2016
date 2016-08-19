@@ -372,6 +372,14 @@ struct t_x11_state {
     XftColor xft_currentcolor;
     XVisualInfo visual_info;
     Colormap colormap_to_use;
+
+    // single multi-buffering variables
+    Drawable* draw_area;
+    Pixmap draw_buffer;
+    XftDraw *draw_buffer_draw, *draw_area_draw;
+
+    // window attributes here so I only have to call XWindowAttributes on resize
+    XWindowAttributes attributes;
 };
 
 typedef XftFont* font_ptr;
@@ -1811,7 +1819,14 @@ clearscreen(void) {
     t_color savecolor;
     if (gl_state.disp_type == SCREEN) {
 #ifdef X11
-        XClearWindow(x11_state.display, x11_state.toplevel);
+        if (x11_state.draw_area == &(x11_state.toplevel)) {
+            XClearWindow(x11_state.display, x11_state.toplevel);
+        }
+        else {
+            setcolor(gl_state.background_color);
+            XFillRectangle(x11_state.display, x11_state.draw_buffer, x11_state.current_gc, 0, 0,
+                    x11_state.attributes.width, x11_state.attributes.height);
+        }
 #else /* Win32 */
         savecolor = gl_state.foreground_color;
         setcolor(gl_state.background_color);
@@ -1904,7 +1919,7 @@ drawline(float x1, float y1, float x2, float y2) {
     if (gl_state.disp_type == SCREEN) {
 #ifdef X11
         /* Xlib.h prototype has x2 and y1 mixed up. */
-        XDrawLine(x11_state.display, x11_state.toplevel, x11_state.current_gc, xworld_to_scrn(x1),
+        XDrawLine(x11_state.display, *(x11_state.draw_area), x11_state.current_gc, xworld_to_scrn(x1),
             yworld_to_scrn(y1), xworld_to_scrn(x2), yworld_to_scrn(y2));
 #else /* Win32 */
         if (!BeginPath(win32_state.hGraphicsDC))
@@ -1954,7 +1969,7 @@ drawrect(float x1, float y1, float x2, float y2) {
         yt = min(yw1, yw2);
         width = abs(xw1 - xw2);
         height = abs(yw1 - yw2);
-        XDrawRectangle(x11_state.display, x11_state.toplevel,
+        XDrawRectangle(x11_state.display, *(x11_state.draw_area),
             x11_state.current_gc, xl, yt, width, height);
 #else /* Win32 */
         if (xw1 > xw2) {
@@ -2023,7 +2038,7 @@ fillrect(float x1, float y1, float x2, float y2) {
         yt = min(yw1, yw2);
         width = abs(xw1 - xw2);
         height = abs(yw1 - yw2);
-        XFillRectangle(x11_state.display, x11_state.toplevel,
+        XFillRectangle(x11_state.display, *(x11_state.draw_area),
             x11_state.current_gc, xl, yt, width, height);
 #else /* Win32 */
         if (xw1 > xw2) {
@@ -2090,7 +2105,7 @@ drawellipticarc(float xc, float yc, float radx, float rady, float startang, floa
         width = (unsigned int) (2 * fabs(trans_coord.wtos_xmult * radx));
         height = (unsigned int) (2 * fabs(trans_coord.wtos_ymult * rady));
 #ifdef X11
-        XDrawArc(x11_state.display, x11_state.toplevel, x11_state.current_gc, xl, yt, width, height,
+        XDrawArc(x11_state.display, *(x11_state.draw_area), x11_state.current_gc, xl, yt, width, height,
             (int) (startang * 64), (int) (angextent * 64));
 #else  // Win32
         int p1, p2, p3, p4;
@@ -2168,7 +2183,7 @@ fillellipticarc(float xc, float yc, float radx, float rady, float startang,
         width = (unsigned int) (2 * fabs(trans_coord.wtos_xmult * radx));
         height = (unsigned int) (2 * fabs(trans_coord.wtos_ymult * rady));
 #ifdef X11
-        XFillArc(x11_state.display, x11_state.toplevel, x11_state.current_gc, xl, yt, width, height,
+        XFillArc(x11_state.display, *(x11_state.draw_area), x11_state.current_gc, xl, yt, width, height,
             (int) (startang * 64), (int) (angextent * 64));
 #else  // Win32
         HPEN hOldPen;
@@ -2268,7 +2283,7 @@ fillpoly(t_point *points, int npoints) {
             transpoints[i].y = (long) yworld_to_scrn(points[i].y);
         }
 #ifdef X11
-        XFillPolygon(x11_state.display, x11_state.toplevel, x11_state.current_gc,
+        XFillPolygon(x11_state.display, *(x11_state.draw_area), x11_state.current_gc,
             transpoints, npoints, Complex, CoordModeOrigin);
 #else
         HPEN hOldPen;
@@ -2555,7 +2570,7 @@ void drawtext(float xc, float yc, const std::string& str_text, float boundx, flo
     if (gl_state.disp_type == SCREEN) {
 #ifdef X11
         XftDrawStringUtf8(
-            x11_state.toplevel_draw,
+            x11_state.draw_area_draw,
             &x11_state.xft_currentcolor,
             current_font,
             // more magic offsets
@@ -3037,6 +3052,8 @@ close_graphics(void) {
     XftDrawDestroy(x11_state.toplevel_draw);
     XftDrawDestroy(x11_state.menu_draw);
     XftDrawDestroy(x11_state.textarea_draw);
+    XftDrawDestroy(x11_state.draw_buffer_draw);
+    XFreePixmap(x11_state.display, x11_state.draw_buffer);
 
     x11_state.colormap_to_use = -1; // is free()'d by XCloseDisplay
     memset(&x11_state.visual_info, 0, sizeof (x11_state.visual_info)); // dont need to free this
@@ -3804,6 +3821,24 @@ static void x11_init_graphics(const char *window_name) {
      * being ready and output being lost.                                     */
     XPeekIfEvent(x11_state.display, &event, x11_test_if_exposed, NULL);
     force_settextattrs(gl_state.currentfontsize, gl_state.currentfontrotation);
+
+    /* The following code initializes the draw buffer */
+
+    // get window attributes
+    XGetWindowAttributes(x11_state.display, x11_state.toplevel, &(x11_state.attributes));
+
+    // initialize draw_buffer for XDraw calls and XftDraw calls
+    x11_state.draw_buffer = XCreatePixmap(x11_state.display, x11_state.toplevel, 
+            x11_state.attributes.width, x11_state.attributes.height, x11_state.attributes.depth);
+    x11_state.draw_buffer_draw = XftDrawCreate(
+            x11_state.display,
+            x11_state.draw_buffer,
+            x11_state.visual_info.visual,
+            x11_state.colormap_to_use
+        );
+
+    // initialize draw_area to screen
+    set_drawing_buffer(ON_SCREEN);
 }
 
 /* Helper function called by event_loop(). Not visible to client program. */
@@ -4297,6 +4332,21 @@ static void x11_redraw_all_if_needed (void (*drawscreen) (void)) {
 #ifdef VERBOSE
     cout << "Redrawing everything\n";
 #endif
+
+    // resize window attributes
+    XGetWindowAttributes(x11_state.display, x11_state.toplevel, &(x11_state.attributes));
+    // resize draw_buffer
+    XFreePixmap(x11_state.display, x11_state.draw_buffer);
+    XftDrawDestroy(x11_state.draw_buffer_draw);
+    x11_state.draw_buffer = XCreatePixmap(x11_state.display, x11_state.toplevel,
+            x11_state.attributes.width, x11_state.attributes.height, x11_state.attributes.depth);
+    x11_state.draw_buffer_draw = XftDrawCreate(
+            x11_state.display,
+            x11_state.draw_buffer,
+            x11_state.visual_info.visual,
+            x11_state.colormap_to_use
+        );
+
     drawscreen();
     x11_drawmenu();
     draw_message();
@@ -5759,3 +5809,32 @@ COLORREF convert_to_win_color(const t_color& src) {
     return RGB(src.red, src.green, src.blue);
 }
 #endif /* WIN32 */
+
+/***********************************************
+ * begin offscreen buffer function definitions *
+ ***********************************************/
+
+void set_drawing_buffer(t_draw_to draw_mode) {
+#ifdef X11
+    if (draw_mode == ON_SCREEN) {
+        x11_state.draw_area = &(x11_state.toplevel);
+        x11_state.draw_area_draw = x11_state.toplevel_draw;
+    }
+    else if (draw_mode == OFF_SCREEN) {
+        x11_state.draw_area = &(x11_state.draw_buffer);
+        x11_state.draw_area_draw = x11_state.draw_buffer_draw;
+    }
+    else {
+        cerr << "New draw mode not yet supported in set_drawing_buffer" << endl;
+    }
+#endif /* X11 */
+}
+
+void copy_off_screen_buffer_to_screen() {
+#ifdef X11
+    XCopyArea(x11_state.display, x11_state.draw_buffer, x11_state.toplevel, x11_state.current_gc,
+            0, 0, x11_state.attributes.width, x11_state.attributes.height, 0, 0);
+
+    XFlush(x11_state.display);
+#endif /* X11 */
+}
