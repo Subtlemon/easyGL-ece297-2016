@@ -3,9 +3,8 @@
 
 #include <iostream>
 #include <string>
-//#include <cairo.h>
-//#include <cairo-xlib.h>
-#include "graphics_state.h"
+#include <cairo.h>
+#include <cairo-xlib.h>
 
 class Surface {
     public:

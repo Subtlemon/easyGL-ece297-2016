@@ -209,7 +209,6 @@ close_graphics() to release all drawing structures and close the graphics.*/
 #include <unordered_map>
 #include <sys/timeb.h>
 #include "graphics.h"
-#include "fontcache.h"
 #include "graphics_state.h"
 
 using namespace std;

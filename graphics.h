@@ -5,6 +5,7 @@
 #include <cstdint>
 #include "easygl_constants.h"
 #include "graphics_types.h"
+#include "Surface.h"
 
 // Set X11 by default, if neither NO_GRAPHICS nor WIN32 are defined
 #ifndef NO_GRAPHICS
@@ -343,22 +344,6 @@ void set_drawing_buffer(t_draw_to draw_mode);
  * main screen.
  */
 void copy_off_screen_buffer_to_screen();
-
-/**
- * @brief Loads png from file.
- *
- * @return A Surface you can draw to the screen.
- */
-Surface load_png_from_file(const char* file_path);
-
-/**
- * @brief Draws a Surface.
- *
- * @param[in] x x screen coordinate
- * @param[in] y y screen coordinate
- * @param[in] surface Surface loaded from load_png_from_file(const char*)
- */
-void draw_surface(const Surface& surface, unsigned x, unsigned y);
 
 /**************** LEVEL OF DETAIL FUNCTIONS   **************************
  *
