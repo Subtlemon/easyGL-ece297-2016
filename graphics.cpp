@@ -498,6 +498,8 @@ static void force_setlinestyle(int linestyle);
 static void force_setlinewidth(int linewidth);
 static void force_settextattrs(int pointsize, int degrees);
 
+static bool use_cairo();
+
 static void reset_common_state();
 static void build_default_menu(void);
 
@@ -769,6 +771,11 @@ static float yworld_to_post(float worldy) {
 // 	);
 // }
 
+static bool use_cairo()
+{
+    return (gl_state.foreground_color.alpha != 255);
+}
+
 /* Sets the current graphics context colour to cindex, regardless of whether we think it is 
  * needed or not. 
  */
@@ -785,23 +792,34 @@ static void force_setcolor(const t_color& new_color) {
 static void update_brushes() {
     if (gl_state.disp_type == SCREEN) {
 #ifdef X11
-        XSetForeground(
-            x11_state.display,
-            x11_state.current_gc,
-            x11_convert_to_xcolor(gl_state.foreground_color)
-            );
-        XRenderColor xr_textcolor;
-        xr_textcolor.red = (gl_state.foreground_color.red << 8);
-        xr_textcolor.green = (gl_state.foreground_color.green << 8);
-        xr_textcolor.blue = (gl_state.foreground_color.blue << 8);
-        xr_textcolor.alpha = 0xffff;
-        XftColorAllocValue(
-            x11_state.display,
-            x11_state.visual_info.visual,
-            x11_state.colormap_to_use,
-            &xr_textcolor,
-            &x11_state.xft_currentcolor
-            );
+        if (gl_state.foreground_color.alpha != 255)
+        {
+            cairo_set_source_rgba(x11_state.ctx,
+                (double)gl_state.foreground_color.red/255,
+                (double)gl_state.foreground_color.green/255,
+                (double)gl_state.foreground_color.blue/255,
+                (double)gl_state.foreground_color.alpha/255);
+        }
+        else
+        {
+            XSetForeground(
+                x11_state.display,
+                x11_state.current_gc,
+                x11_convert_to_xcolor(gl_state.foreground_color)
+                );
+            XRenderColor xr_textcolor;
+            xr_textcolor.red = (gl_state.foreground_color.red << 8);
+            xr_textcolor.green = (gl_state.foreground_color.green << 8);
+            xr_textcolor.blue = (gl_state.foreground_color.blue << 8);
+            xr_textcolor.alpha = 0xffff;
+            XftColorAllocValue(
+                x11_state.display,
+                x11_state.visual_info.visual,
+                x11_state.colormap_to_use,
+                &xr_textcolor,
+                &x11_state.xft_currentcolor
+                );
+        }
 #else /* Win32 */
         int win_linestyle, linewidth;
         LOGBRUSH lb;
@@ -905,9 +923,24 @@ static void force_setlinestyle(int linestyle) {
     if (gl_state.disp_type == SCREEN) {
 
 #ifdef X11
+        // XLIB
         static int x_vals[2] = {LineSolid, LineOnOffDash};
         XSetLineAttributes(x11_state.display, x11_state.current_gc, gl_state.currentlinewidth,
             x_vals[linestyle], CapButt, JoinMiter);
+        
+        // CAIRO
+        static double dashes[] = {
+            5.0,  /* ink */
+            3.0,  /* skip */
+        };
+        if (linestyle == 1)
+        {
+            cairo_set_dash(x11_state.ctx, dashes, 2, 0);
+        }
+        else 
+        {
+            cairo_set_dash(x11_state.ctx, dashes, 0, 0);
+        }
 #else  // Win32
         LOGBRUSH lb;
         lb.lbStyle = BS_SOLID;
@@ -958,9 +991,13 @@ static void force_setlinewidth(int linewidth) {
     if (gl_state.disp_type == SCREEN) {
 
 #ifdef X11
+        // X11
         static int x_vals[2] = {LineSolid, LineOnOffDash};
         XSetLineAttributes(x11_state.display, x11_state.current_gc, linewidth,
             x_vals[gl_state.currentlinestyle], CapButt, JoinMiter);
+        
+        // CAIRO
+        cairo_set_line_width(x11_state.ctx, linewidth);
 #else /* Win32 */
         LOGBRUSH lb;
         lb.lbStyle = BS_SOLID;
@@ -1607,8 +1644,17 @@ drawline(float x1, float y1, float x2, float y2) {
     if (gl_state.disp_type == SCREEN) {
 #ifdef X11
         /* Xlib.h prototype has x2 and y1 mixed up. */
-        XDrawLine(x11_state.display, *(x11_state.draw_area), x11_state.current_gc, xworld_to_scrn(x1),
-            yworld_to_scrn(y1), xworld_to_scrn(x2), yworld_to_scrn(y2));
+        if (use_cairo())
+        {
+            cairo_move_to(x11_state.ctx, xworld_to_scrn(x1), yworld_to_scrn(y1));
+            cairo_line_to(x11_state.ctx, xworld_to_scrn(x2), yworld_to_scrn(y2));
+            cairo_stroke(x11_state.ctx);
+        }
+        else
+        {
+            XDrawLine(x11_state.display, *(x11_state.draw_area), x11_state.current_gc, xworld_to_scrn(x1),
+                yworld_to_scrn(y1), xworld_to_scrn(x2), yworld_to_scrn(y2));
+        }
 #else /* Win32 */
         if (!BeginPath(win32_state.hGraphicsDC))
             WIN32_DRAW_ERROR();
@@ -1657,8 +1703,19 @@ drawrect(float x1, float y1, float x2, float y2) {
         yt = min(yw1, yw2);
         width = abs(xw1 - xw2);
         height = abs(yw1 - yw2);
-        XDrawRectangle(x11_state.display, *(x11_state.draw_area),
-            x11_state.current_gc, xl, yt, width, height);
+        
+        if (use_cairo())
+        {
+            std::cout << "using cairo" << std::endl;
+            cairo_rectangle(x11_state.ctx, xl, yt, width, height);
+            cairo_fill(x11_state.ctx);
+        }
+        else
+        {
+            XDrawRectangle(x11_state.display, *(x11_state.draw_area),
+                x11_state.current_gc, xl, yt, width, height);
+        }
+        
 #else /* Win32 */
         if (xw1 > xw2) {
             int temp = xw1;
@@ -3298,6 +3355,21 @@ static void x11_init_graphics(const char *window_name) {
     x11_state.gc_xor = XCreateGC(x11_state.display, x11_state.toplevel, (GCFunction | GCForeground),
         &values);
 
+    /* Initialize draw_buffer for XDraw calls and XftDraw calls */
+    // get window attributes
+    XGetWindowAttributes(x11_state.display, x11_state.toplevel, &(x11_state.attributes));
+    x11_state.draw_buffer = XCreatePixmap(x11_state.display, x11_state.toplevel, 
+        x11_state.attributes.width, x11_state.attributes.height, x11_state.attributes.depth);
+    x11_state.draw_buffer_draw = XftDrawCreate(
+        x11_state.display,
+        x11_state.draw_buffer,
+        x11_state.visual_info.visual,
+        x11_state.colormap_to_use
+    );
+    
+    // initialize draw_area to screen
+    set_drawing_buffer(ON_SCREEN);
+
     /* Set drawing defaults for user-drawable area.  Use whatever the *
      * initial values of the current stuff was set to.                */
     force_settextattrs(gl_state.currentfontsize, gl_state.currentfontrotation);
@@ -3333,26 +3405,6 @@ static void x11_init_graphics(const char *window_name) {
      * being ready and output being lost.                                     */
     XPeekIfEvent(x11_state.display, &event, x11_test_if_exposed, NULL);
     force_settextattrs(gl_state.currentfontsize, gl_state.currentfontrotation);
-
-    /* The following code initializes the draw buffer */
-
-    // get window attributes
-    XGetWindowAttributes(x11_state.display, x11_state.toplevel, &(x11_state.attributes));
-
-    // initialize draw_buffer for XDraw calls and XftDraw calls
-    x11_state.draw_buffer = XCreatePixmap(x11_state.display, x11_state.toplevel, 
-            x11_state.attributes.width, x11_state.attributes.height, x11_state.attributes.depth);
-    x11_state.draw_buffer_draw = XftDrawCreate(
-            x11_state.display,
-            x11_state.draw_buffer,
-            x11_state.visual_info.visual,
-            x11_state.colormap_to_use
-        );
-
-    // initialize draw_area to screen
-    // Also initializes cairo
-    set_drawing_buffer(ON_SCREEN);
-    init_cairo();
 }
 
 /* Helper function called by event_loop(). Not visible to client program. */
