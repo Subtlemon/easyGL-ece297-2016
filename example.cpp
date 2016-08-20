@@ -38,6 +38,11 @@ const t_bound_box initial_coords = t_bound_box(0,0,1000,1000);
 // const t_bound_box initial_coords = t_bound_box(0,1000,1000,0); 
 
 
+#ifndef DRAW_BUFFER
+#define DRAW_BUFFER
+#endif
+/**/
+
 int main() {
 
 	std::cout << "About to start graphics.\n";
@@ -46,7 +51,13 @@ int main() {
 	
 	// Set the name of the window (in UTF-8), with white background.
 	init_graphics("Some Example Graphics", WHITE); // you could pass a t_color RGB triplet instead
+<<<<<<< HEAD
 	set_drawing_buffer(OFF_SCREEN);
+=======
+#ifdef DRAW_BUFFER
+	set_drawing_buffer(OFF_SCREEN);
+#endif
+>>>>>>> d39ef75c521fd1de19d6d51ac4e365f02a008f30
 
 	// Set-up coordinates. The coordinates passed in define what coordinate
         // limits you want to use; this coordinate system is mapped to fill 
@@ -349,7 +360,7 @@ void drawscreen (void) {
 	}
 
 	/********
-	/* Draw some cairo things
+	 * Draw some cairo things
 	*********/
 	{
 		fillrect_cairo(100, 100, 400, 400, 0, 0);
@@ -368,7 +379,13 @@ void drawscreen (void) {
 	// Screen redraw will get rid of a rubber line.  
 	have_rubber_line = false;
 
+<<<<<<< HEAD
 	copy_off_screen_buffer_to_screen();
+=======
+#ifdef DRAW_BUFFER
+	copy_off_screen_buffer_to_screen();
+#endif
+>>>>>>> d39ef75c521fd1de19d6d51ac4e365f02a008f30
 }
 
 

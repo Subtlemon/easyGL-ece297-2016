@@ -70,12 +70,12 @@
  * - if WIN32 not defined, it defines X11 automatically                     *
  * - fixed X11 compilation; WIN32 broke some things                         *
  *                                                                          *
- * V1.05 : July 26, 2001 : (William)									       *
+ * V1.05 : July 26, 2001 : (William)                                        *
  * - changed keyboard detect function to accept an int (virtual key)        *
  *                                                                          *
- * V1.04 : June 29, 2001 : (William)									       *
+ * V1.04 : June 29, 2001 : (William)                                        *
  * - added drawcurve(), fillcurve() using Bezier curves                     *
- *   (support WIN32 screen / ps)											   *
+ *   (support WIN32 screen / ps)                                            *
  * - added pt on object capability : using a memory buffer to draw an       *
  *   graphics objects, then query if a point fall on the object (bear the   *
  *   object's colour) : object_start(), object_end(), pt_on_object()        *
@@ -84,31 +84,31 @@
  * - extended t_report to keep xleft, xright, ytop, ybot                    *
  * - added update_window() to set the window bb                             *
  *                                                                          *
- * V1.03 : June 18, 2001 : (William)									       *
- * - added change_button_text()											   *
+ * V1.03 : June 18, 2001 : (William)                                        *
+ * - added change_button_text()                                             *
  *                                                                          *
- * V1.02 : June 13, 2001 : (William)									       *
- * - extension to mouse click function : can tell if ctrl/shift keys are	   *
- *   pressed															  	   *
+ * V1.02 : June 13, 2001 : (William)                                        *
+ * - extension to mouse click function : can tell if ctrl/shift keys are    *
+ *   pressed                                                                *
  *                                                                          *
- * V1.01 : June 1, 2001 : (William)									       *
- * - add tooltip support												  	   *
+ * V1.01 : June 1, 2001 : (William)                                         *
+ * - add tooltip support                                                    *
  *                                                                          *
- * V1.0 : May 14, 2001 : (William)									       *
- * - fixed a problem with line styles, initial release on the internet  	   *
+ * V1.0 : May 14, 2001 : (William)                                          *
+ * - fixed a problem with line styles, initial release on the internet      *
  *                                                                          *
- * March 27, 2001 : (William)		                                       *
- * - added setcolor_by_colorref to make more colors available (in Win32)	   *
+ * March 27, 2001 : (William)                                               *
+ * - added setcolor_by_colorref to make more colors available (in Win32)    *
  *                                                                          *
  * February 16, 2001 : (William)                                            *
- * - added quick zoom using right mouse clicks							   *
+ * - added quick zoom using right mouse clicks                              *
  *                                                                          *
  * February 11, 2001 : (William)                                            *
- * - can define cleanup(), passed in when calling init_graphics(), and	    *
- *   called when shutting down						    *
+ * - can define cleanup(), passed in when calling init_graphics(), and      *
+ *   called when shutting down                                              *
  *                                                                          *
  * February 1, 2001 : (William)                                             *
- * - fix xor mode redraw problem			                    *
+ * - fix xor mode redraw problem                                            *
  *                                                                          *
  * September 19, 2000 : (William)                                           *
  * - can define mouse_move callback function                                *
@@ -3894,6 +3894,8 @@ static void x11_redraw_all_if_needed (void (*drawscreen) (void)) {
             x11_state.colormap_to_use
         );
 
+    init_cairo();
+
     drawscreen();
     x11_drawmenu();
     draw_message();
@@ -5407,7 +5409,7 @@ static void init_cairo() {
     // Create new cairo things and set attributes
     x11_state.cairo_surface = cairo_xlib_surface_create(
             x11_state.display,
-            *(x11_state.draw_area),
+            *x11_state.draw_area,
             x11_state.visual_info.visual,
             x11_state.attributes.width, x11_state.attributes.height);
     cairo_xlib_surface_set_size(x11_state.cairo_surface, x11_state.attributes.width, x11_state.attributes.height);
@@ -5416,7 +5418,6 @@ static void init_cairo() {
 }
 
 void fillrect_cairo(double x, double y, double width, double height, int offsetx, int offsety) {
-
     if (rect_off_screen(x - width/2, y - height/2, x + width/2, y + height/2))
         return;
 
