@@ -5061,6 +5061,25 @@ void copy_off_screen_buffer_to_screen() {
 #endif /* X11 */
 }
 
+/*************************************************
+ * begin loading and drawing from file functions *
+ *************************************************/
+
+Surface load_png_from_file(const char* file_path) {
+    return Surface(file_path);
+}
+
+void draw_surface(const Surface& surface, unsigned x, unsigned y) {
+    if (surface.getSurface() != NULL) {
+        cairo_set_source_surface(x11_state.ctx, surface.getSurface(),
+                xworld_to_scrn(x), yworld_to_scrn(y));
+        cairo_paint(x11_state.ctx);
+    }
+    else {
+        cerr << "Surface was not initialized" << endl;
+    }
+}
+
 /***********************************************
  * begin cairo functions                       *
  ***********************************************/
