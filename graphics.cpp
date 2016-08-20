@@ -227,7 +227,6 @@ using namespace std;
 #define T_AREA_HEIGHT	24  /* Height of text window */
 
 #define BUTTON_TEXT_LEN	100
-#define BUFSIZE			1000
 
 #define ZOOM_FACTOR  1.6667 /* For zooming on the graphics */
 #endif
@@ -295,14 +294,6 @@ using namespace std;
  * Common Structure Definitions                              *
  *************************************************************/
 
-/* Used to define where the output of drawscreen (graphics primitives in the user-controlled
- * area) currently goes to: the screen or a postscript file.
- */
-typedef enum {
-    SCREEN = 0,
-    POSTSCRIPT = 1
-} t_display_type;
-
 /* Indicates if this button displays text, a polygon or is just a separator.
  */
 typedef enum {
@@ -352,58 +343,6 @@ typedef struct {
     t_button *button;
     int num_buttons;
 } t_button_state;
-
-/* Structure used to store overall graphics state variables.
- * initialized:  true if the graphics window & state have been
- *      created and initialized, false otherwise.
- * disp_type: Selects SCREEN or POSTSCRIPT
- * background_color: colour of the window (or page for PS) background colour
- * foreground_color: current color in the graphics context
- * currentlinestyle: current linestyle in the graphics context
- * currentlinewidth: current linewidth in the graphics context
- * currentfontsize: current font size in the graphics context
- * currentfontrotation: current text rotation angle, in degrees
- *        Using integer degrees to avoid huge numbers of distinct rotations
- *        that cause many (slow) font loads.
- * current_draw_mode: select DRAW_NORMAL (for overwrite) or DRAW_XOR (for rubber-banding)
- * ps: for PostScript output
- * ProceedPressed: whether the Proceed button has been pressed
- * statusMessage: user message to display
- * font_info: a font cache
- * get_keypress_input: whether keypresses are sent back to callback functions
- * get_mouse_move_input: whether mouse movements are sent back to callback functions
- * redraw_needed: true if there has been an expose or other event that requires a
- * redraw, but we haven't done one yet.
- *
- * Need to initialize graphics_loaded to false, since checking it is
- * how we avoid multiple construction or destruction of the graphics
- * window. Initializing display type and background color index is not
- * necessary since they are set in init_graphics(), but doing so
- * just for safety.
- */
-struct t_gl_state {
-    bool initialized;
-    t_display_type disp_type;
-    t_color background_color;
-    t_color foreground_color;
-    int currentlinestyle;
-    int currentlinewidth;
-    int currentfontsize;
-    int currentfontrotation;
-    e_draw_mode current_draw_mode;
-    FILE *ps;
-    bool ProceedPressed;
-    char statusMessage[BUFSIZE];
-    FontCache font_info;
-    bool get_keypress_input, get_mouse_move_input;
-    bool redraw_needed;
-
-    t_gl_state()
-    : initialized(false)
-    , disp_type(SCREEN)
-    , background_color(0xFF, 0xFF, 0xCC) {
-    }
-};
 
 /* Structure used to store coordinate information used for
  * graphic transformations.
