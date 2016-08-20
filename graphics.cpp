@@ -562,6 +562,7 @@ static void unmap_button(int bnum);
 
 /* Helper functions for X11; not visible to client program. */
 static void x11_init_graphics(const char* window_name);
+static void init_cairo();
 static void x11_event_loop(void (*act_on_mousebutton)
     (float x, float y, t_event_buttonPressed button_info),
     void (*act_on_mousemove)(float x, float y),
@@ -3378,6 +3379,7 @@ static void x11_init_graphics(const char *window_name) {
         );
 
     // initialize draw_area to screen
+    // Also initializes cairo
     set_drawing_buffer(ON_SCREEN);
 }
 
@@ -5359,10 +5361,12 @@ void set_drawing_buffer(t_draw_to draw_mode) {
     if (draw_mode == ON_SCREEN) {
         x11_state.draw_area = &(x11_state.toplevel);
         x11_state.draw_area_draw = x11_state.toplevel_draw;
+        init_cairo();
     }
     else if (draw_mode == OFF_SCREEN) {
         x11_state.draw_area = &(x11_state.draw_buffer);
         x11_state.draw_area_draw = x11_state.draw_buffer_draw;
+        init_cairo();
     }
     else {
         cerr << "New draw mode not yet supported in set_drawing_buffer" << endl;
@@ -5375,6 +5379,31 @@ void copy_off_screen_buffer_to_screen() {
     XCopyArea(x11_state.display, x11_state.draw_buffer, x11_state.toplevel, x11_state.current_gc,
             0, 0, x11_state.attributes.width, x11_state.attributes.height, 0, 0);
 
+    cairo_xlib_surface_set_size(
+            x11_state.cairo_surface,
+            x11_state.attributes.width,
+            x11_state.attributes.height);
+
     XFlush(x11_state.display);
 #endif /* X11 */
+}
+
+/***********************************************
+ * begin cairo functions                       *
+ ***********************************************/
+
+static void init_cairo() {
+    // Destory old cairo things
+    cairo_destroy(x11_state.ctx);
+    cairo_surface_destroy(x11_state.cairo_surface);
+
+    // Create new cairo things and set attributes
+    x11_state.cairo_surface = cairo_xlib_surface_create(
+            x11_state.display,
+            x11_state.draw_area == &(x11_state.draw_buffer) ? x11_state.draw_buffer : x11_state.toplevel,
+            x11_state.visual_info.visual,
+            x11_state.attributes.width, x11_state.attributes.height);
+    cairo_xlib_surface_set_size(x11_state.cairo_surface, x11_state.attributes.width, x11_state.attributes.height);
+    x11_state.ctx = cairo_create(x11_state.cairo_surface);
+    cairo_set_antialias(x11_state.ctx, CAIRO_ANTIALIAS_NONE); // Turn off anti-aliasing
 }

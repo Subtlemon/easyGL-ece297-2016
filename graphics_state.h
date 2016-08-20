@@ -24,6 +24,8 @@
 #include <X11/Xos.h>
 #include <X11/Xatom.h>
 #include <X11/Xft/Xft.h>
+#include <cairo.h>
+#include <cairo-xlib.h>
 #endif
 
 #ifdef WIN32
@@ -78,6 +80,10 @@ public:
 
 	// window attributes here so I only have to call XWindowAttributes on resize
 	XWindowAttributes attributes;
+
+	// Cairo related things
+	cairo_surface_t *cairo_surface;
+	cairo_t *ctx;
 
 	static t_x11_state *getInstance();
 
