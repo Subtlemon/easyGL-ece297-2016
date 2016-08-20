@@ -42,7 +42,7 @@ ifeq ($(PLATFORM),X11)
 endif
 
 $(EXE): graphics.o fontcache.o graphics_state.o example.o
-	g++ $(FLAGS) $^ $(GRAPHICS_LIBS) -o bin/$(EXE)
+	g++ $(FLAGS) $^ $(GRAPHICS_LIBS) -o $(EXE)
 
 # A generic make rule for creating a .o file from an identically named (sans extension) .cpp file
 # $< evaluates to the name of the _first_ dependency (the .cpp file in this case)
