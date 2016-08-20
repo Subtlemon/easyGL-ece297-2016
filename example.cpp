@@ -46,7 +46,7 @@ int main() {
 	
 	// Set the name of the window (in UTF-8), with white background.
 	init_graphics("Some Example Graphics", WHITE); // you could pass a t_color RGB triplet instead
-	//set_drawing_buffer(OFF_SCREEN);
+	set_drawing_buffer(OFF_SCREEN);
 
 	// Set-up coordinates. The coordinates passed in define what coordinate
         // limits you want to use; this coordinate system is mapped to fill 
@@ -368,7 +368,7 @@ void drawscreen (void) {
 	// Screen redraw will get rid of a rubber line.  
 	have_rubber_line = false;
 
-	//copy_off_screen_buffer_to_screen();
+	copy_off_screen_buffer_to_screen();
 }
 
 

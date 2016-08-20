@@ -5381,6 +5381,8 @@ void set_drawing_buffer(t_draw_to draw_mode) {
 
 void copy_off_screen_buffer_to_screen() {
 #ifdef X11
+    if (x11_state.draw_area != &x11_state.draw_buffer) return;
+    
     XCopyArea(x11_state.display, x11_state.draw_buffer, x11_state.toplevel, x11_state.current_gc,
             0, 0, x11_state.attributes.width, x11_state.attributes.height, 0, 0);
 
@@ -5405,9 +5407,7 @@ static void init_cairo() {
     // Create new cairo things and set attributes
     x11_state.cairo_surface = cairo_xlib_surface_create(
             x11_state.display,
-            //x11_state.draw_area == &(x11_state.draw_buffer) ? x11_state.draw_buffer : x11_state.toplevel,
-	    //x11_state.draw_buffer,
-	    x11_state.toplevel,
+            *(x11_state.draw_area),
             x11_state.visual_info.visual,
             x11_state.attributes.width, x11_state.attributes.height);
     cairo_xlib_surface_set_size(x11_state.cairo_surface, x11_state.attributes.width, x11_state.attributes.height);

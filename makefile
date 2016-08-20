@@ -23,11 +23,6 @@ PLATFORM = X11
 #PLATFORM = WIN32
 #PLATFORM = NO_GRAPHICS
 
-#What directory contains the cairo library
-LIB_CAIRO_SRC_DIR = /usr/include/cairo
-
-INCLUDE_FLAGS = -I$(LIB_CAIRO_SRC_DIR)
-
 HDR = graphics.h fontcache.h graphics_state.h easygl_constants.h
 SRC = graphics.cpp fontcache.cpp graphics_state.cpp example.cpp 
 EXE = example
@@ -37,8 +32,12 @@ FLAGS = -g -Wall -Wextra -pedantic -D$(PLATFORM) -std=c++11
 # Need to tell the linker to link to the libraries.
 # WIN32 links to all the win32 API libraries every time (no need for flags)
 ifeq ($(PLATFORM),X11)
-   GRAPHICS_LIBS = -lX11 -lXft -lfontconfig -lcairo
-   FLAGS += $(INCLUDE_FLAGS) $(shell pkg-config --cflags freetype2) # evaluates to the correct include flags for the freetype headers
+	#What directory contains the cairo library
+	LIB_CAIRO_SRC_DIR = /usr/include/cairo
+	INCLUDE_FLAGS = -I$(LIB_CAIRO_SRC_DIR)
+
+	GRAPHICS_LIBS = -lX11 -lXft -lfontconfig -lcairo
+	FLAGS += $(INCLUDE_FLAGS) $(shell pkg-config --cflags freetype2) # evaluates to the correct include flags for the freetype headers
 endif
 
 $(EXE): graphics.o fontcache.o graphics_state.o example.o
