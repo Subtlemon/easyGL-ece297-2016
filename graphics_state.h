@@ -33,7 +33,7 @@
 #include <WindowsX.h>
 #endif
 
-#define BUFSIZE	1000
+#define BUFSIZE 1000
 
 #ifdef X11
 
@@ -60,36 +60,36 @@
  */
 class t_x11_state {
 public:
-	t_x11_state();
-	~t_x11_state();
-	
-	Display *display;
-	int screen_num;
-	Window toplevel, menu, textarea;
-	GC gc_normal, gc_xor, gc_menus, current_gc;
-	XftDraw *toplevel_draw, *menu_draw, *textarea_draw;
-	XftColor xft_menutextcolor;
-	XftColor xft_currentcolor;
-	XVisualInfo visual_info;
-	Colormap colormap_to_use;
+    t_x11_state();
+    ~t_x11_state();
 
-	// single multi-buffering variables
-	Drawable* draw_area;
-	Pixmap draw_buffer;
-	XftDraw *draw_buffer_draw, *draw_area_draw;
+    Display *display;
+    int screen_num;
+    Window toplevel, menu, textarea;
+    GC gc_normal, gc_xor, gc_menus, current_gc;
+    XftDraw *toplevel_draw, *menu_draw, *textarea_draw;
+    XftColor xft_menutextcolor;
+    XftColor xft_currentcolor;
+    XVisualInfo visual_info;
+    Colormap colormap_to_use;
 
-	// window attributes here so I only have to call XGetWindowAttributes on resize
-	XWindowAttributes attributes;
+    // single multi-buffering variables
+    Drawable* draw_area;
+    Pixmap draw_buffer;
+    XftDraw *draw_buffer_draw, *draw_area_draw;
 
-	// Cairo related things
-	cairo_surface_t *cairo_surface;
-	cairo_t *ctx;
+    // window attributes here so I only have to call XGetWindowAttributes on resize
+    XWindowAttributes attributes;
 
-	static t_x11_state *getInstance();
+    // Cairo related things
+    cairo_surface_t *cairo_surface;
+    cairo_t *ctx;
+
+    static t_x11_state *getInstance();
 
 private:
-	// Pointer to the most recently constructed state. Is set to NULL upon any destruction
-	static t_x11_state *instance;
+    // Pointer to the most recently constructed state. Is set to NULL upon any destruction
+    static t_x11_state *instance;
 };
 
 #endif // X11
@@ -111,9 +111,9 @@ private:
  * operation goes back to WINDOW_DEACTIVATED.
  */
 typedef enum {
-	WINDOW_DEACTIVATED = 0,
-	WAITING_FOR_FIRST_CORNER_POINT,
-	WAITING_FOR_SECOND_CORNER_POINT
+    WINDOW_DEACTIVATED = 0,
+    WAITING_FOR_FIRST_CORNER_POINT,
+    WAITING_FOR_SECOND_CORNER_POINT
 } t_window_button_state;
 
 /* Structure used to store Win32 state variables.
@@ -134,24 +134,24 @@ typedef enum {
  */
 class t_win32_state {
 public:
-	t_win32_state();
-	~t_win32_state();
+    t_win32_state();
+    ~t_win32_state();
 
-	bool InEventLoop;
-	t_window_button_state windowAdjustFlag;
-	int adjustButton;
-	RECT adjustRect;
-	HWND hMainWnd, hGraphicsWnd, hButtonsWnd, hStatusWnd;
-	HDC hGraphicsDC;
-	HPEN hGraphicsPen;
-	HBRUSH hGraphicsBrush, hGrayBrush;
-	HFONT hGraphicsFont;
+    bool InEventLoop;
+    t_window_button_state windowAdjustFlag;
+    int adjustButton;
+    RECT adjustRect;
+    HWND hMainWnd, hGraphicsWnd, hButtonsWnd, hStatusWnd;
+    HDC hGraphicsDC;
+    HPEN hGraphicsPen;
+    HBRUSH hGraphicsBrush, hGrayBrush;
+    HFONT hGraphicsFont;
 
-	static t_win32_state *getInstance();
+    static t_win32_state *getInstance();
 
 private:
-	// Pointer to the most recently constructed state. Is set to NULL upon any destruction
-	static t_win32_state *instance;
+    // Pointer to the most recently constructed state. Is set to NULL upon any destruction
+    static t_win32_state *instance;
 };
 
 #endif // WIN32

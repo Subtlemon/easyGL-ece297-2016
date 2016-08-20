@@ -82,56 +82,57 @@ typedef XftFont* font_ptr;
  */
 class FontCache {
 public:
-	FontCache()
-	: order_zeros()
-	, descriptor2font_zeros()
-	, order_rotated()
-	, descriptor2font_rotated() {
-	}
 
-	/**
-	* Retrieve a font from this cache, or create it if it doesn't already exist,
-	* pushing out, and deleting a font if the new font wont fit in its cache.
-	* Gets a font from one of two caches depending on whether or not it is rotated.
-	*/
-	font_ptr get_font_info(size_t pointsize, int degrees);
+    FontCache()
+    : order_zeros()
+    , descriptor2font_zeros()
+    , order_rotated()
+    , descriptor2font_rotated() {
+    }
 
-	/**
-	* Clear out this cache so that it contains no fonts. This deletes all fonts,
-	* as well, so make sure any fonts that were retrieved before cannot be referenced.
-	*/
-	void clear();
+    /**
+     * Retrieve a font from this cache, or create it if it doesn't already exist,
+     * pushing out, and deleting a font if the new font wont fit in its cache.
+     * Gets a font from one of two caches depending on whether or not it is rotated.
+     */
+    font_ptr get_font_info(size_t pointsize, int degrees);
+
+    /**
+     * Clear out this cache so that it contains no fonts. This deletes all fonts,
+     * as well, so make sure any fonts that were retrieved before cannot be referenced.
+     */
+    void clear();
 
 private:
-	typedef std::pair<size_t, int> font_descriptor;
+    typedef std::pair<size_t, int> font_descriptor;
 
-	struct fontdesc_hasher {
+    struct fontdesc_hasher {
 
-	inline std::size_t operator()(const font_descriptor& v) const {
-	    std::hash<size_t> sizet_hasher;
-	    std::hash<int> int_hasher;
-	    return sizet_hasher(v.first) ^ int_hasher(v.second);
-	}
-	};
-	FontCache(const FontCache&);
-	FontCache& operator=(const FontCache&);
+        inline std::size_t operator()(const font_descriptor& v) const {
+            std::hash<size_t> sizet_hasher;
+            std::hash<int> int_hasher;
+            return sizet_hasher(v.first) ^ int_hasher(v.second);
+        }
+    };
+    FontCache(const FontCache&);
+    FontCache& operator=(const FontCache&);
 
-	static void close_font(font_ptr font);
-	static font_ptr do_font_loading(int pointsize, int degrees);
+    static void close_font(font_ptr font);
+    static font_ptr do_font_loading(int pointsize, int degrees);
 
-	// this function actually does all the work of get_font_info, but only
-	// looks/creates in the given map and queue.
-	template<class queue_type, class map_type>
-	static font_ptr get_font_info(
-	size_t pointsize, int degrees,
-	queue_type& orderqueue, map_type& descr2font_map, size_t max_size);
+    // this function actually does all the work of get_font_info, but only
+    // looks/creates in the given map and queue.
+    template<class queue_type, class map_type>
+    static font_ptr get_font_info(
+            size_t pointsize, int degrees,
+            queue_type& orderqueue, map_type& descr2font_map, size_t max_size);
 
-	// unrotated fonts (zero rotation)
-	std::deque<font_descriptor> order_zeros;
-	std::unordered_map<font_descriptor, font_ptr, fontdesc_hasher> descriptor2font_zeros;
-	// rotated fonts
-	std::deque<font_descriptor> order_rotated;
-	std::unordered_map<font_descriptor, font_ptr, fontdesc_hasher> descriptor2font_rotated;
+    // unrotated fonts (zero rotation)
+    std::deque<font_descriptor> order_zeros;
+    std::unordered_map<font_descriptor, font_ptr, fontdesc_hasher> descriptor2font_zeros;
+    // rotated fonts
+    std::deque<font_descriptor> order_rotated;
+    std::unordered_map<font_descriptor, font_ptr, fontdesc_hasher> descriptor2font_rotated;
 };
 
 #endif // FONTCACHE_H

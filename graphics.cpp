@@ -104,11 +104,11 @@
  * - added quick zoom using right mouse clicks							   *
  *                                                                          *
  * February 11, 2001 : (William)                                            *
- * - can define cleanup(), passed in when calling init_graphics(), and	   *
- *   called when shutting down							                   *
+ * - can define cleanup(), passed in when calling init_graphics(), and	    *
+ *   called when shutting down						    *
  *                                                                          *
  * February 1, 2001 : (William)                                             *
- * - fix xor mode redraw problem			                                   *
+ * - fix xor mode redraw problem			                    *
  *                                                                          *
  * September 19, 2000 : (William)                                           *
  * - can define mouse_move callback function                                *
