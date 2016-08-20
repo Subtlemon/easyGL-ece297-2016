@@ -1706,9 +1706,8 @@ drawrect(float x1, float y1, float x2, float y2) {
         
         if (use_cairo())
         {
-            std::cout << "using cairo" << std::endl;
             cairo_rectangle(x11_state.ctx, xl, yt, width, height);
-            cairo_fill(x11_state.ctx);
+            cairo_stroke(x11_state.ctx);
         }
         else
         {
@@ -1783,8 +1782,17 @@ fillrect(float x1, float y1, float x2, float y2) {
         yt = min(yw1, yw2);
         width = abs(xw1 - xw2);
         height = abs(yw1 - yw2);
-        XFillRectangle(x11_state.display, *(x11_state.draw_area),
-            x11_state.current_gc, xl, yt, width, height);
+        
+        if (use_cairo())
+        {
+            cairo_rectangle(x11_state.ctx, xl, yt, width, height);
+            cairo_fill(x11_state.ctx);
+        }
+        else
+        {
+            XFillRectangle(x11_state.display, *(x11_state.draw_area),
+                x11_state.current_gc, xl, yt, width, height);
+        }
 #else /* Win32 */
         if (xw1 > xw2) {
             int temp = xw1;

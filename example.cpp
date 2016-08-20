@@ -387,13 +387,19 @@ void drawscreen(void) {
         }
         
         // Rectangles
+        setlinestyle(SOLID);
+        setlinewidth(3);
         setcolor(t_color(255, 0, 0, 255/2));
+        fillrect(250, -100, 800, -50);
         drawrect(250, -100, 800, -50);
         
         setcolor(t_color(0, 0, 255, 255/2));
+        fillrect(250, -100-50, 800, -50-50);
         drawrect(250, -100-50, 800, -50-50);
         
+        setlinestyle(DASHED);
         setcolor(t_color(100, 200, 0, 255/2));
+        fillrect(300, -100-25, 750, -50-25);
         drawrect(300, -100-25, 750, -50-25);
     }
 
