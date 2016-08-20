@@ -78,7 +78,7 @@ public:
 	Pixmap draw_buffer;
 	XftDraw *draw_buffer_draw, *draw_area_draw;
 
-	// window attributes here so I only have to call XWindowAttributes on resize
+	// window attributes here so I only have to call XGetWindowAttributes on resize
 	XWindowAttributes attributes;
 
 	// Cairo related things
