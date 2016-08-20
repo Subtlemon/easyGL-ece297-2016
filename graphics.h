@@ -19,6 +19,7 @@
                          // Look in (/usr/include/) X11/keysymdef.h for the code names.
 #endif
 
+#define PI 3.141592654
 
 /**************** USEFUL TYPES YOU CAN PASS TO GRAPHICS FUNCTIONS **********/
 

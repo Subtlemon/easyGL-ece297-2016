@@ -209,6 +209,9 @@ close_graphics() to release all drawing structures and close the graphics.*/
 #include <unordered_map>
 #include <sys/timeb.h>
 #include "graphics.h"
+#include "fontcache.h"
+#include "graphics_state.h"
+
 using namespace std;
 
 
@@ -222,58 +225,6 @@ using namespace std;
 #define MWIDTH			104 /* Width of menu window */
 #define MENU_FONT_SIZE  11  /* Font for menus and dialog boxes. */
 #define T_AREA_HEIGHT	24  /* Height of text window */
-
-
-/**
- * Linux/Mac:
- *   The strings listed below will be submitted to fontconfig, in this priority,
- *   with point size specified, and it will try to find something that matches. If it doesn't
- *   find anything, it will try the next font.
- *
- *   If fontconfig can't find any that look like any of the fonts you specify, (unlikely with the defaults)
- *   you must find one that it will. Run `fc-match <test_font_name>` to test you font name, and then modify
- *   this array with that name string. If you'd like, run `fc-list` to list available fonts.
- *   Note:
- *     - The fc-* commands are a CLI frontend for fontconfig,
- *       so anything that works there will work in this graphics library.
- *     - The font returned by fontconfig may not be the same, but will look similar.
- *
- * Windows:
- *   Something with similar effect will be done, but it is harder to tell what will happen.
- *   Check your installed fonts if the program exits immediately or while changing font size.
- *
- */
-#define NUM_FONT_TYPES 3
-const char* const fontname_config[]{
-    "helvetica",
-    "lucida sans",
-    "schumacher"
-};
-
-
-/**
- * Maximum sizes for the font cache. The "ZEROS" one is for fonts of zero rotation, and
- * the "ROTATED" one is for fonts with other rotation. If you plan on rotating text to
- * many rotations, say random ones, and displaying them all at the same time, I suggest
- * something large for "ROTATED". The value of "ZEROS" is probably fine.
- *
- * What these values really mean to you is: because the text drawing is really lazy about
- * loading fonts, the "ZEROS" should be at least how many font sizes you expect to be visible
- * at a given time, and the "ROTATED" is for how many other different angle-fontsize combinations
- * you expect to be visible at a given time. If you program remains within these limits, there
- * will be no slow frames, except the first one where you change many visible combinations.
- * For after this frame, the font cache has filled up with the fonts that are visible
- *
- * A quick experiment gave these results:
- *    10 fonts =>     540 KiB
- *   100 fonts =>   1.7   MiB
- *  1000 fonts =>  13.5   Mib
- * 10000 fonts => 132.4   Mib
- */
-#define FONT_CACHE_SIZE_FOR_ZEROS 40
-#define FONT_CACHE_SIZE_FOR_ROTATED 1000
-
-#define PI				3.141592654
 
 #define BUTTON_TEXT_LEN	100
 #define BUFSIZE			1000
@@ -339,106 +290,6 @@ const char* const fontname_config[]{
 #define DEGTORAD(x) ((x)/180.*PI)
 #endif /* Win32 preprocessor Directives */
 
-#ifdef X11
-
-/*************************************************************
- * X11 Structure Definitions                                 *
- *************************************************************/
-
-/* Structure used to store X Windows state variables.
- * display: Structure containing information needed to
- *			communicate with Xlib.
- * screen_num: Value the Xlib server uses to identify every
- *			   connected screen.
- * current_font: the currently selected font.
- * toplevel, menu, textarea: Toplevel window and 2 child windows.
- * gc_normal, gc_xor, current_gc: Graphic contexts for drawing
- *				in the graphics area. (gc_normal for overwrite
- *				drawing, gc_xor for rubber band drawing, and
- *				current_gc is the current gc used)
- * gc_menus: Graphic context for drawing in the status message
- *			 and menu area
- * xft_menutextcolor: the XFT colour used for drawing button and menu text.
- * xft_currentcolor: the XFT colour used for drawing normal text. Is kept in
- *                   sync with gl_state.foreground_color
- */
-struct t_x11_state {
-    Display *display;
-    int screen_num;
-    Window toplevel, menu, textarea;
-    GC gc_normal, gc_xor, gc_menus, current_gc;
-    XftDraw *toplevel_draw, *menu_draw, *textarea_draw;
-    XftColor xft_menutextcolor;
-    XftColor xft_currentcolor;
-    XVisualInfo visual_info;
-    Colormap colormap_to_use;
-
-    // single multi-buffering variables
-    Drawable* draw_area;
-    Pixmap draw_buffer;
-    XftDraw *draw_buffer_draw, *draw_area_draw;
-
-    // window attributes here so I only have to call XWindowAttributes on resize
-    XWindowAttributes attributes;
-};
-
-typedef XftFont* font_ptr;
-
-#endif
-
-#ifdef WIN32
-
-/*************************************************************
- * WIN32 Structure Definitions                               *
- *************************************************************/
-
-/* Flag used for the "window" button. Before the user presses the button, the
- * "window" operation is in WINDOW_DEACTIVATED state. After user presses the
- * button, the operation proceeds to WAITING_FOR_FIRST_CORNER_POINT state and
- * waits for the user to click the first point in the graphics area as the first
- * corner for rubber band drawing. After user clicks the first point, the operation
- * proceeds to WAITING_FOR_SECOND_CORNER_POINT and waits for the user to click on
- * the second point to define the rectangular region enclosed by the rubber band.
- * Then the application window will zoom in to the region defined and the "window"
- * operation goes back to WINDOW_DEACTIVATED.
- */
-typedef enum {
-    WINDOW_DEACTIVATED = 0,
-    WAITING_FOR_FIRST_CORNER_POINT,
-    WAITING_FOR_SECOND_CORNER_POINT
-} t_window_button_state;
-
-/* Structure used to store Win32 state variables.
- * InEventLoop: Whether in event_loop(); used to indicate if part of the application window need
- *              to be redrawn when system makes request by sending WM_PAINT message in the
- *				WIN32_GraphicsWND callback function.
- * windowAdjustFlag: Flag used for the "Window" button operation. This variable has 3 states
- *					 which are defined above.
- * adjustButton: Holds the index of the "Window" button in the array of buttons created
- * adjustRect: Used for the "Window" button operation. Holds the boundary coordinates (in screen
- *			   pixels) of the region enclosed by the rubber band.
- * hMainWnd, hGraphicsWnd, hButtonsWnd, hStatusWnd: Handles to the top level window and
- *				3 subwindows.
- * hGraphicsDC: Handle to the graphics device context.
- * hGraphicsPen, hGraphicsBrush, hGrayBrush, hGraphicsFont: Handles to Windows GDI objects used
- *				for drawing. (hGraphicsPen for drawing lines, hGraphicsBrush for filling shapes,
- *				and hGrayBrush for filling the background of the status message and menu areas)
- */
-struct t_win32_state {
-    bool InEventLoop;
-    t_window_button_state windowAdjustFlag;
-    int adjustButton;
-    RECT adjustRect;
-    HWND hMainWnd, hGraphicsWnd, hButtonsWnd, hStatusWnd;
-    HDC hGraphicsDC;
-    HPEN hGraphicsPen;
-    HBRUSH hGraphicsBrush, hGrayBrush;
-    HFONT hGraphicsFont;
-};
-
-typedef LOGFONT* font_ptr;
-
-#endif
 
 /*************************************************************
  * Common Structure Definitions                              *
@@ -501,74 +352,6 @@ typedef struct {
     t_button *button;
     int num_buttons;
 } t_button_state;
-
-/**
- * This is a class that caches fonts. It separates out unrotated and rotated fonts,
- * for the reason that the unrotated ones are used for bounds estimation anyway, as
- * well as that they are generally convenient to have around. For each group, it uses
- * a queue to keep track of the order of creation, and when a new font would put a
- * cache over capacity, it deletes the oldest one first. The maps are to allow fast
- * lookup of fonts from their size and rotation.
- *
- * This cache is also not very complicated, and it could be, if there were a good reason.
- *
- * Also note that no references retrieved from this cache should be retained, as
- * another part of the program may cause the creation of another font(s) that will
- * push yours out. Instead a font should be retrieved every time it is needed.
- * 
- * We're currently using only integer font rotations (in degrees), to avoid having
- * a tremendous number of possible font rotations.
- */
-class FontCache {
-public:
-
-    FontCache()
-    : order_zeros()
-    , descriptor2font_zeros()
-    , order_rotated()
-    , descriptor2font_rotated() {
-    }
-
-    /**
-     * Retrieve a font from this cache, or create it if it doesn't already exist,
-     * pushing out, and deleting a font if the new font wont fit in its cache.
-     * Gets a font from one of two caches depending on whether or not it is rotated.
-     */
-    font_ptr get_font_info(size_t pointsize, int degrees);
-
-    /**
-     * Clear out this cache so that it contains no fonts. This deletes all fonts,
-     * as well, so make sure any fonts that were retrieved before cannot be referenced.
-     */
-    void clear();
-private:
-    typedef std::pair<size_t, int> font_descriptor;
-
-    struct fontdesc_hasher {
-
-        inline std::size_t operator()(const font_descriptor& v) const {
-            std::hash<size_t> sizet_hasher;
-            std::hash<int> int_hasher;
-            return sizet_hasher(v.first) ^ int_hasher(v.second);
-        }
-    };
-    FontCache(const FontCache&);
-    FontCache& operator=(const FontCache&);
-
-    // this function actually does all the work of get_font_info, but only
-    // looks/creates in the given map and queue.
-    template<class queue_type, class map_type>
-    static font_ptr get_font_info(
-        size_t pointsize, int degrees,
-        queue_type& orderqueue, map_type& descr2font_map, size_t max_size);
-
-    // unrotated fonts (zero rotation)
-    std::deque<font_descriptor> order_zeros;
-    std::unordered_map<font_descriptor, font_ptr, fontdesc_hasher> descriptor2font_zeros;
-    // rotated fonts
-    std::deque<font_descriptor> order_rotated;
-    std::unordered_map<font_descriptor, font_ptr, fontdesc_hasher> descriptor2font_rotated;
-};
 
 /* Structure used to store overall graphics state variables.
  * initialized:  true if the graphics window & state have been
@@ -808,8 +591,6 @@ static void update_brushes();
 static void force_setlinestyle(int linestyle);
 static void force_setlinewidth(int linewidth);
 static void force_settextattrs(int pointsize, int degrees);
-static font_ptr do_font_loading(int pointsize, int degrees);
-static void close_font(font_ptr font);
 
 static void reset_common_state();
 static void build_default_menu(void);
@@ -3392,115 +3173,6 @@ build_default_menu(void) {
 #endif
 }
 
-/**
- * Loads the font with given attributes, and puts the pointer to in in put_font_ptr_here
- */
-static font_ptr
-do_font_loading(int pointsize, int degrees) {
-
-    bool success = false;
-    font_ptr retval = NULL;
-
-#ifdef X11
-    for (int ifont = 0; ifont < NUM_FONT_TYPES; ifont++) {
-
-#ifdef VERBOSE
-        printf("Loading font: %s-%d\n", fontname_config[ifont], pointsize);
-#endif
-
-        XftMatrix font_matrix;
-        XftMatrixInit(&font_matrix);
-        if (degrees != 0) {
-            XftMatrixRotate(&font_matrix, cos(PI * (degrees) / 180), sin(PI * degrees / 180));
-        }
-
-        /* Load font and get font information structure. */
-        retval = XftFontOpen(
-            x11_state.display, x11_state.screen_num,
-            XFT_FAMILY, XftTypeString, fontname_config[ifont],
-            XFT_SIZE, XftTypeDouble, (double) pointsize,
-            XFT_MATRIX, XftTypeMatrix, &font_matrix,
-            NULL // (sentinel)
-            );
-
-        if (retval == NULL) {
-#ifdef VERBOSE
-            fprintf(stderr, "Cannot open font %s", fontname_config[ifont]);
-            if (degrees != 0) {
-                fprintf(stderr, "with rotation %f deg", degrees);
-            }
-            printf("\n");
-#endif
-        } else {
-            success = true;
-            break;
-        }
-    }
-    if (success == false) {
-        printf("Error in load_font: fontconfig couldn't find any font of pointsize %d.\n", pointsize);
-        if (degrees != 0) {
-            printf("and rotation %d deg", degrees);
-        }
-        printf("Use `fc-list` to list available fonts, `fc-match` to test, and then modify\n");
-        printf("the font config array in easygl_constants.h .\n");
-        exit(1);
-    }
-#elif WIN32
-    LOGFONT *lf = retval = (LOGFONT*) my_malloc(sizeof (LOGFONT));
-    ZeroMemory(lf, sizeof (LOGFONT));
-    // lfHeight specifies the desired height of characters in logical units.
-    // A positive value of lfHeight will request a font that is appropriate
-    // for a line spacing of lfHeight. On the other hand, setting lfHeight
-    // to a negative value will obtain a font height that is compatible with
-    // the desired pointsize.
-    lf->lfHeight = -pointsize;
-    lf->lfWeight = FW_NORMAL;
-    lf->lfCharSet = ANSI_CHARSET;
-    lf->lfOutPrecision = OUT_DEFAULT_PRECIS;
-    lf->lfClipPrecision = CLIP_DEFAULT_PRECIS;
-    lf->lfQuality = PROOF_QUALITY;
-    lf->lfPitchAndFamily = VARIABLE_PITCH | FF_SWISS;
-    lf->lfEscapement = (LONG) degrees * 10;
-    lf->lfOrientation = (LONG) degrees * 10;
-    HFONT testfont;
-    for (int ifont = 0; ifont < NUM_FONT_TYPES; ++ifont) {
-        MultiByteToWideChar(CP_UTF8, 0, fontname_config[ifont], -1,
-            lf->lfFaceName, sizeof (lf->lfFaceName) / sizeof (wchar_t));
-
-        testfont = CreateFontIndirect(lf);
-        if (testfont == NULL) {
-#ifdef VERBOSE
-            fprintf(stderr, "Couldn't open font %s in pointsize %d.\n",
-                fontname_config[ifont], pointsize);
-#endif
-            continue;
-        }
-
-        if (DeleteObject(testfont) == 0) {
-            WIN32_DELETE_ERROR();
-        } else {
-            success = true;
-            break;
-        }
-    }
-    if (success == false) {
-        printf("Error in load_font: Windows couldn't find any font of pointsize %d.\n", pointsize);
-        printf("check installed fonts, and then modify\n");
-        printf("the font config array in easygl_constants.h .\n");
-        exit(1);
-    }
-#endif
-    return retval;
-}
-
-static void close_font(font_ptr font) {
-#ifdef X11
-    XftFontClose(x11_state.display, font);
-#elif WIN32
-    free(font);
-#endif
-}
-
 /* Return information useful for debugging.
  * Used to return the top-level window object too, but that made graphics.h
  * export all windows and X11 headers to the client program, so VB deleted 
@@ -3595,77 +3267,6 @@ void change_button_text(const char *button_name, const char *new_button_text) {
 #endif
     }
 }
-
-/******************************************
- * begin FontCache function definitions *
- ******************************************/
-
-font_ptr FontCache::get_font_info(size_t pointsize, int degrees) {
-    if (degrees == 0) {
-        return get_font_info(
-            pointsize, degrees,
-            order_zeros, descriptor2font_zeros, FONT_CACHE_SIZE_FOR_ZEROS
-            );
-    } else {
-        return get_font_info(
-            pointsize, degrees,
-            order_rotated, descriptor2font_rotated, FONT_CACHE_SIZE_FOR_ROTATED
-            );
-    }
-}
-
-void FontCache::clear() {
-    for (
-        auto iter = descriptor2font_zeros.begin();
-        iter != descriptor2font_zeros.end();
-        ++iter
-        ) {
-        close_font(iter->second);
-    }
-    order_zeros.clear();
-    descriptor2font_zeros.clear();
-
-    for (
-        auto iter = descriptor2font_rotated.begin();
-        iter != descriptor2font_rotated.end();
-        ++iter
-        ) {
-        close_font(iter->second);
-    }
-    order_rotated.clear();
-    descriptor2font_rotated.clear();
-}
-
-template<class queue_type, class map_type>
-font_ptr FontCache::get_font_info(
-    size_t pointsize, int degrees,
-    queue_type& orderqueue, map_type& descr2font_map, size_t max_size) {
-
-    auto search_result = descr2font_map.find(std::make_pair(pointsize, degrees));
-    if (search_result == descr2font_map.end()) {
-
-        if (orderqueue.size() + 1 > max_size) {
-            // if too many fonts, remove the oldest font from the cache.
-            font_descriptor fontdesc_to_remove = orderqueue.back();
-            auto font_to_remove = descr2font_map.find(fontdesc_to_remove);
-
-            close_font(font_to_remove->second);
-
-            descr2font_map.erase(font_to_remove);
-            orderqueue.pop_back();
-            puts("font cache overflow");
-        }
-
-        font_ptr new_font = do_font_loading(pointsize, degrees);
-        font_descriptor new_font_desc = std::make_pair(pointsize, degrees);
-        orderqueue.push_front(new_font_desc);
-        descr2font_map.insert(std::make_pair(new_font_desc, new_font));
-        return new_font;
-    } else {
-        return search_result->second;
-    }
-}
-
 
 /**********************************
  * X-Windows Specific Definitions *
