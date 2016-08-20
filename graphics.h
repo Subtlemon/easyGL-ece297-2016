@@ -595,4 +595,6 @@ void win32_fillcurve(t_point *points, int npoints);
 
 #endif // WIN32
 
+void fillrect_cairo(double x, double y, double width, double height, int offsetx, int offsety);
+
 #endif // GRAPHICS_H

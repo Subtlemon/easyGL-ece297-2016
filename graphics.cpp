@@ -2799,6 +2799,10 @@ close_graphics(void) {
         WIN32_DRAW_ERROR();
 #endif
 
+    // Destroy cairo things
+    cairo_destroy(x11_state.ctx);
+    cairo_surface_destroy(x11_state.cairo_surface);
+
     gl_state.initialized = false;
 }
 
@@ -3381,6 +3385,7 @@ static void x11_init_graphics(const char *window_name) {
     // initialize draw_area to screen
     // Also initializes cairo
     set_drawing_buffer(ON_SCREEN);
+    init_cairo();
 }
 
 /* Helper function called by event_loop(). Not visible to client program. */
@@ -5400,10 +5405,34 @@ static void init_cairo() {
     // Create new cairo things and set attributes
     x11_state.cairo_surface = cairo_xlib_surface_create(
             x11_state.display,
-            x11_state.draw_area == &(x11_state.draw_buffer) ? x11_state.draw_buffer : x11_state.toplevel,
+            //x11_state.draw_area == &(x11_state.draw_buffer) ? x11_state.draw_buffer : x11_state.toplevel,
+	    //x11_state.draw_buffer,
+	    x11_state.toplevel,
             x11_state.visual_info.visual,
             x11_state.attributes.width, x11_state.attributes.height);
     cairo_xlib_surface_set_size(x11_state.cairo_surface, x11_state.attributes.width, x11_state.attributes.height);
     x11_state.ctx = cairo_create(x11_state.cairo_surface);
     cairo_set_antialias(x11_state.ctx, CAIRO_ANTIALIAS_NONE); // Turn off anti-aliasing
+}
+
+void fillrect_cairo(double x, double y, double width, double height, int offsetx, int offsety) {
+
+    if (rect_off_screen(x - width/2, y - height/2, x + width/2, y + height/2))
+        return;
+
+    if (x11_state.ctx == NULL)
+        return;
+
+    double xscreen = (xworld_to_scrn(x));
+    double yscreen = (yworld_to_scrn(y));
+    double widthscreen = xworld_to_scrn(x+width) - xscreen;
+    double heightscreen = yworld_to_scrn(y+height) - yscreen;
+
+    cairo_set_source_rgba(x11_state.ctx,
+        0.5,
+        0.8,
+        0.3,
+        0.3);
+    cairo_rectangle(x11_state.ctx, xscreen + offsetx, yscreen + offsety, widthscreen, heightscreen);
+    cairo_fill(x11_state.ctx);
 }
