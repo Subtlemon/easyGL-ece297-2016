@@ -398,40 +398,7 @@ static t_transform_coordinates trans_coord;
 // Initialize panning_enabled to false, so panning is not activated
 static t_panning_state pan_state = {0, 0, false};
 
-// Predefined colours
-static const vector<t_color> predef_colors = {
-    t_color(0xFF, 0xFF, 0xFF), // "white"
-    t_color(0x00, 0x00, 0x00), // "black"
-    t_color(0x8C, 0x8C, 0x8C), // "grey55"
-    t_color(0xBF, 0xBF, 0xBF), // "grey75"
-    t_color(0xFF, 0x00, 0x00), // "red"
-    t_color(0xFF, 0xA5, 0x00), // "orange"
-    t_color(0xFF, 0xFF, 0x00), // "yellow"
-    t_color(0x00, 0xFF, 0x00), // "green"
-    t_color(0x00, 0xFF, 0xFF), // "cyan"
-    t_color(0x00, 0x00, 0xFF), // "blue"
-    t_color(0xA0, 0x20, 0xF0), // "purple"
-    t_color(0xFF, 0xC0, 0xCB), // "pink"
-    t_color(0xFF, 0xB6, 0xC1), // "lightpink"
-    t_color(0x00, 0x64, 0x00), // "darkgreen"
-    t_color(0xFF, 0x00, 0xFF), // "magenta"
-    t_color(0xFF, 0xE4, 0xC4), // "bisque"
-    t_color(0x87, 0xCE, 0xFA), // "lightskyblue"
-    t_color(0xD8, 0xBF, 0xD8), // "thistle"
-    t_color(0xDD, 0xA0, 0xDD), // "plum"
-    t_color(0xF0, 0xE6, 0x8C), // "khaki"
-    t_color(0xFF, 0x7F, 0x50), // "coral"
-    t_color(0x40, 0xE0, 0xD0), // "turquoise"
-    t_color(0x93, 0x70, 0xDB), // "mediumpurple"
-    t_color(0x48, 0x3D, 0x8B), // "darkslateblue"
-    t_color(0xBD, 0xB7, 0x6B), // "darkkhaki"
-    t_color(0x44, 0x44, 0xFF), // "lightmediumblue"
-    t_color(0x8B, 0x45, 0x13), // "saddlebrown"
-    t_color(0xB2, 0x22, 0x22), // "firebrick"
-    t_color(0x32, 0xCD, 0x32) // "limegreen"
-};
-
-// assert(predef_colors.size() == NUM_COLOR);
+// assert(t_color::predef_colors.size() == NUM_COLOR);
 
 // Color names, also used in postscript generation
 static const char *ps_cnames[NUM_COLOR] = {
@@ -806,7 +773,7 @@ static float yworld_to_post(float worldy) {
  * needed or not. 
  */
 static void force_setcolor(int cindex) {
-    gl_state.foreground_color = predef_colors[cindex];
+    gl_state.foreground_color = t_color::predef_colors[cindex];
     update_brushes();
 }
 
@@ -871,12 +838,12 @@ static void update_brushes() {
 #endif
     } else {
         auto color_index = std::find(
-            predef_colors.begin(),
-            predef_colors.end(),
+            t_color::predef_colors.begin(),
+            t_color::predef_colors.end(),
             gl_state.foreground_color
             );
-        if (color_index != predef_colors.end()) {
-            fprintf(gl_state.ps, "%s\n", ps_cnames[color_index - predef_colors.begin()]);
+        if (color_index != t_color::predef_colors.end()) {
+            fprintf(gl_state.ps, "%s\n", ps_cnames[color_index - t_color::predef_colors.begin()]);
         } else {
             fprintf(
                 gl_state.ps,
@@ -891,7 +858,7 @@ static void update_brushes() {
 
 /* Sets the current graphics context colour to cindex if it differs from the old colour */
 void setcolor(int cindex) {
-    if (gl_state.foreground_color != predef_colors[cindex]) {
+    if (gl_state.foreground_color != t_color::predef_colors[cindex]) {
         force_setcolor(cindex);
     }
 }
@@ -1118,8 +1085,8 @@ static void map_button(int bnum) {
             button_state.button[bnum].ytop,
             button_state.button[bnum].width,
             button_state.button[bnum].height, 0,
-            x11_convert_to_xcolor(predef_colors[WHITE]),
-            x11_convert_to_xcolor(predef_colors[LIGHTGREY])
+            x11_convert_to_xcolor(t_color::predef_colors[WHITE]),
+            x11_convert_to_xcolor(t_color::predef_colors[LIGHTGREY])
             );
 
         XMapWindow(x11_state.display, button_state.button[bnum].win);
@@ -1309,7 +1276,7 @@ destroy_button(const char *button_text) {
  * Calls build_default_menu to set up the default menu.         */
 void
 init_graphics(const std::string& window_name, int cindex) {
-    init_graphics(window_name, predef_colors[cindex]);
+    init_graphics(window_name, t_color::predef_colors[cindex]);
 }
 
 void init_graphics(const std::string& window_name, const t_color& background) {
@@ -1334,7 +1301,7 @@ void init_graphics(const std::string& window_name, const t_color& background) {
 }
 
 static void reset_common_state() {
-    gl_state.foreground_color = predef_colors[BLACK];
+    gl_state.foreground_color = t_color::predef_colors[BLACK];
     gl_state.currentlinestyle = SOLID;
     gl_state.currentlinewidth = 0;
     gl_state.currentfontsize = 12;
@@ -2386,11 +2353,11 @@ draw_message(void) {
         XClearWindow(x11_state.display, x11_state.textarea);
 
         XSetForeground(x11_state.display, x11_state.gc_menus, 
-                    x11_convert_to_xcolor(predef_colors[WHITE]));
+                    x11_convert_to_xcolor(t_color::predef_colors[WHITE]));
         XDrawRectangle(x11_state.display, x11_state.textarea, x11_state.gc_menus, 0, 0,
             trans_coord.top_width - MWIDTH, T_AREA_HEIGHT);
         XSetForeground(x11_state.display, x11_state.gc_menus, 
-                    x11_convert_to_xcolor(predef_colors[BLACK]));
+                    x11_convert_to_xcolor(t_color::predef_colors[BLACK]));
         XDrawLine(x11_state.display, x11_state.textarea, x11_state.gc_menus, 0, T_AREA_HEIGHT - 1,
             trans_coord.top_width - MWIDTH, T_AREA_HEIGHT - 1);
         XDrawLine(x11_state.display, x11_state.textarea, x11_state.gc_menus,
@@ -2983,8 +2950,8 @@ build_default_menu(void) {
         x11_state.display, x11_state.toplevel,
         trans_coord.top_width - MWIDTH, 0, MWIDTH,
         trans_coord.display_height, 0,
-        x11_convert_to_xcolor(predef_colors[BLACK]),
-        x11_convert_to_xcolor(predef_colors[LIGHTGREY])
+        x11_convert_to_xcolor(t_color::predef_colors[BLACK]),
+        x11_convert_to_xcolor(t_color::predef_colors[LIGHTGREY])
         );
 
     x11_state.menu_draw = XftDrawCreate(
@@ -3280,7 +3247,7 @@ static void x11_init_graphics(const char *window_name) {
 
     XSetWindowAttributes attrs;
     attrs.colormap = x11_state.colormap_to_use;
-    attrs.border_pixel = x11_convert_to_xcolor(predef_colors[BLACK]);
+    attrs.border_pixel = x11_convert_to_xcolor(t_color::predef_colors[BLACK]);
     attrs.background_pixel = x11_convert_to_xcolor(gl_state.background_color);
 
     x11_state.toplevel = XCreateWindow(
@@ -3617,8 +3584,8 @@ static void x11_build_textarea(void) {
 
     x11_state.textarea = XCreateSimpleWindow(x11_state.display, x11_state.toplevel, 0,
         trans_coord.top_height - T_AREA_HEIGHT, trans_coord.display_width - MWIDTH,
-        T_AREA_HEIGHT, 0, x11_convert_to_xcolor(predef_colors[BLACK]), 
-        x11_convert_to_xcolor(predef_colors[LIGHTGREY]));
+        T_AREA_HEIGHT, 0, x11_convert_to_xcolor(t_color::predef_colors[BLACK]), 
+        x11_convert_to_xcolor(t_color::predef_colors[LIGHTGREY]));
 
     x11_state.textarea_draw = XftDrawCreate(
         x11_state.display,
@@ -3694,10 +3661,10 @@ static void x11_drawbut(int bnum) {
         x = button_state.button[bnum].xleft;
         y = button_state.button[bnum].ytop;
         XSetForeground(x11_state.display, x11_state.gc_menus, 
-                  x11_convert_to_xcolor(predef_colors[WHITE]));
+                  x11_convert_to_xcolor(t_color::predef_colors[WHITE]));
         XDrawLine(x11_state.display, x11_state.menu, x11_state.gc_menus, x, y + 1, x + width, y + 1);
         XSetForeground(x11_state.display, x11_state.gc_menus, 
-                x11_convert_to_xcolor(predef_colors[BLACK]) );
+                x11_convert_to_xcolor(t_color::predef_colors[BLACK]) );
         XDrawLine(x11_state.display, x11_state.menu, x11_state.gc_menus, x, y, x + width, y);
         return;
     }
@@ -3707,10 +3674,10 @@ static void x11_drawbut(int bnum) {
     /* Draw top and left edges of 3D box. */
     if (ispressed) {
         XSetForeground(x11_state.display, x11_state.gc_menus, 
-                x11_convert_to_xcolor(predef_colors[BLACK]));
+                x11_convert_to_xcolor(t_color::predef_colors[BLACK]));
     } else {
         XSetForeground(x11_state.display, x11_state.gc_menus, 
-                x11_convert_to_xcolor(predef_colors[WHITE]));
+                x11_convert_to_xcolor(t_color::predef_colors[WHITE]));
     }
 
     /* Note:  X Windows doesn't appear to draw the bottom pixel of *
@@ -3734,10 +3701,10 @@ static void x11_drawbut(int bnum) {
     /* Draw bottom and right edges of 3D box. */
     if (ispressed) {
         XSetForeground(x11_state.display, x11_state.gc_menus, 
-                x11_convert_to_xcolor(predef_colors[WHITE]));
+                x11_convert_to_xcolor(t_color::predef_colors[WHITE]));
     } else {
         XSetForeground(x11_state.display, x11_state.gc_menus, 
-                x11_convert_to_xcolor(predef_colors[BLACK]));
+                x11_convert_to_xcolor(t_color::predef_colors[BLACK]));
     }
     mypoly[0].x = 0;
     mypoly[0].y = height;
@@ -3757,11 +3724,11 @@ static void x11_drawbut(int bnum) {
     /* Draw background */
     if (ispressed) {
         XSetForeground(x11_state.display, x11_state.gc_menus,
-            x11_convert_to_xcolor(predef_colors[DARKGREY])
+            x11_convert_to_xcolor(t_color::predef_colors[DARKGREY])
             );
     } else {
         XSetForeground(x11_state.display, x11_state.gc_menus,
-            x11_convert_to_xcolor(predef_colors[LIGHTGREY])
+            x11_convert_to_xcolor(t_color::predef_colors[LIGHTGREY])
             );
     }
 
@@ -3776,7 +3743,7 @@ static void x11_drawbut(int bnum) {
             mypoly[i].y = button_state.button[bnum].poly[i][1];
         }
         XSetForeground(x11_state.display, x11_state.gc_menus,
-            x11_convert_to_xcolor(predef_colors[BLACK])
+            x11_convert_to_xcolor(t_color::predef_colors[BLACK])
             );
         XFillPolygon(x11_state.display, button_state.button[bnum].win,
             x11_state.gc_menus, mypoly, 3, Convex, CoordModeOrigin);
@@ -3786,11 +3753,11 @@ static void x11_drawbut(int bnum) {
     if (button_state.button[bnum].type == BUTTON_TEXT) {
         if (button_state.button[bnum].enabled) {
             XSetForeground(x11_state.display, x11_state.gc_menus,
-                x11_convert_to_xcolor(predef_colors[BLACK])
+                x11_convert_to_xcolor(t_color::predef_colors[BLACK])
                 );
         } else {
             XSetForeground(x11_state.display, x11_state.gc_menus,
-                x11_convert_to_xcolor(predef_colors[DARKGREY])
+                x11_convert_to_xcolor(t_color::predef_colors[DARKGREY])
                 );
         }
         menutext(button_state.button[bnum].draw, button_state.button[bnum].width / 2,
@@ -3826,11 +3793,11 @@ static void x11_drawmenu(void) {
 
     XClearWindow(x11_state.display, x11_state.menu);
     XSetForeground(x11_state.display, x11_state.gc_menus, 
-            x11_convert_to_xcolor(predef_colors[WHITE]) );
+            x11_convert_to_xcolor(t_color::predef_colors[WHITE]) );
     XDrawRectangle(x11_state.display, x11_state.menu, x11_state.gc_menus, 0, 0, MWIDTH,
         trans_coord.top_height);
     XSetForeground(x11_state.display, x11_state.gc_menus, 
-            x11_convert_to_xcolor(predef_colors[BLACK]) );
+            x11_convert_to_xcolor(t_color::predef_colors[BLACK]) );
     XDrawLine(x11_state.display, x11_state.menu, x11_state.gc_menus, 0, trans_coord.top_height - 1,
         MWIDTH, trans_coord.top_height - 1);
     XDrawLine(x11_state.display, x11_state.menu, x11_state.gc_menus, MWIDTH - 1,
@@ -3992,10 +3959,10 @@ win32_init_graphics(const char *window_name) {
 
     if (!win32_state.hGraphicsPen)
         WIN32_CREATE_ERROR();
-    win32_state.hGraphicsBrush = CreateSolidBrush(convert_to_win_color(predef_colors[DARKGREY]));
+    win32_state.hGraphicsBrush = CreateSolidBrush(convert_to_win_color(t_color::predef_colors[DARKGREY]));
     if (!win32_state.hGraphicsBrush)
         WIN32_CREATE_ERROR();
-    win32_state.hGrayBrush = CreateSolidBrush(convert_to_win_color(predef_colors[LIGHTGREY]));
+    win32_state.hGrayBrush = CreateSolidBrush(convert_to_win_color(t_color::predef_colors[LIGHTGREY]));
     if (!win32_state.hGrayBrush)
         WIN32_CREATE_ERROR();
 
@@ -4160,7 +4127,7 @@ WIN32_GraphicsWND(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
 
             /* Setup the pens, etc */
             gl_state.currentlinestyle = SOLID;
-            gl_state.foreground_color = predef_colors[BLACK];
+            gl_state.foreground_color = t_color::predef_colors[BLACK];
             gl_state.currentlinewidth = 1;
             gl_state.currentfontsize = 12;
             return 0;
@@ -4505,7 +4472,7 @@ WIN32_ButtonsWND(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
             hdc = GetDC(hwnd);
             if (!hdc)
                 WIN32_DRAW_ERROR();
-            hBrush = CreateSolidBrush(convert_to_win_color(predef_colors[LIGHTGREY]));
+            hBrush = CreateSolidBrush(convert_to_win_color(t_color::predef_colors[LIGHTGREY]));
             if (!hBrush)
                 WIN32_CREATE_ERROR();
             if (!SelectObject(hdc, hBrush))
@@ -5048,309 +5015,6 @@ void win32_fillcurve(t_point *points, int npoints) {
 
 #endif  // NO_GRAPHICS
 
-/****************** begin definition of data structure members *********************/
-
-/******************************************
- * begin t_point function definitions *
- ******************************************/
-
-void t_point::offset(float _x, float _y) {
-    x += _x;
-    y += _y;
-}
-
-t_point t_point::operator-(const t_point& rhs) const {
-    t_point result = *this;
-    result -= rhs;
-    return result;
-}
-
-t_point t_point::operator+(const t_point& rhs) const {
-    t_point result = *this;
-    result += rhs;
-    return result;
-}
-
-t_point t_point::operator*(float rhs) const {
-    t_point result = *this;
-    result *= rhs;
-    return result;
-}
-
-t_point& t_point::operator+=(const t_point& rhs) {
-    this->x += rhs.x;
-    this->y += rhs.y;
-    return *this;
-}
-
-t_point& t_point::operator-=(const t_point& rhs) {
-    this->x -= rhs.x;
-    this->y -= rhs.y;
-    return *this;
-}
-
-t_point& t_point::operator*=(float rhs) {
-    this->x *= rhs;
-    this->y *= rhs;
-    return *this;
-}
-
-t_point& t_point::operator=(const t_point& src) {
-    this->x = src.x;
-    this->y = src.y;
-    return *this;
-}
-
-t_point::t_point() : x(0), y(0) {
-}
-
-t_point::t_point(const t_point& src) :
-x(src.x), y(src.y) {
-}
-
-t_point::t_point(float _x, float _y) : x(_x), y(_y) {
-}
-
-t_point operator*(float lhs, const t_point& rhs) {
-    return rhs*lhs;
-}
-
-/******************************************
- * begin t_bound_box function definitions *
- ******************************************/
-
-const float& t_bound_box::left() const {
-    return bottom_left().x;
-}
-
-const float& t_bound_box::right() const {
-    return top_right().x;
-}
-
-const float& t_bound_box::bottom() const {
-    return bottom_left().y;
-}
-
-const float& t_bound_box::top() const {
-    return top_right().y;
-}
-
-const t_point& t_bound_box::bottom_left() const {
-    return bottomleft;
-}
-
-const t_point& t_bound_box::top_right() const {
-    return topright;
-}
-
-float& t_bound_box::left() {
-    return bottom_left().x;
-}
-
-float& t_bound_box::right() {
-    return top_right().x;
-}
-
-float& t_bound_box::bottom() {
-    return bottom_left().y;
-}
-
-float& t_bound_box::top() {
-    return top_right().y;
-}
-
-t_point& t_bound_box::bottom_left() {
-    return bottomleft;
-}
-
-t_point& t_bound_box::top_right() {
-    return topright;
-}
-
-float t_bound_box::get_xcenter() const {
-    return (right() + left()) / 2;
-}
-
-float t_bound_box::get_ycenter() const {
-    return (top() + bottom()) / 2;
-}
-
-t_point t_bound_box::get_center() const {
-    return t_point(get_xcenter(), get_ycenter());
-}
-
-float t_bound_box::get_width() const {
-    return right() - left();
-}
-
-float t_bound_box::get_height() const {
-    return top() - bottom();
-}
-
-void t_bound_box::offset(const t_point& relative_to) {
-    this->bottomleft += relative_to;
-    this->topright += relative_to;
-}
-
-void t_bound_box::offset(float by_x, float by_y) {
-    this->bottomleft.offset(by_x, by_y);
-    this->topright.offset(by_x, by_y);
-}
-
-bool t_bound_box::intersects(const t_point& test_pt) const {
-    return intersects(test_pt.x, test_pt.y);
-}
-
-bool t_bound_box::intersects(float x, float y) const {
-    if (x < left() || right() < x || y < bottom() || top() < y) {
-        return false;
-    } else {
-        return true;
-    }
-}
-
-float t_bound_box::area() const {
-    return fabs(get_width() * get_height());
-}
-
-t_bound_box t_bound_box::operator+(const t_point& rhs) const {
-    t_bound_box result = *this;
-    result.offset(rhs);
-    return result;
-}
-
-t_bound_box t_bound_box::operator-(const t_point& rhs) const {
-    t_bound_box result = *this;
-    result.offset(t_point(-rhs.x, -rhs.y));
-    return result;
-}
-
-t_bound_box& t_bound_box::operator+=(const t_point& rhs) {
-    this->offset(rhs);
-    return *this;
-}
-
-t_bound_box& t_bound_box::operator-=(const t_point& rhs) {
-    this->offset(t_point(-rhs.x, -rhs.y));
-    return *this;
-}
-
-t_bound_box& t_bound_box::operator=(const t_bound_box& src) {
-    this->bottom_left() = src.bottom_left();
-    this->top_right() = src.top_right();
-    return *this;
-}
-
-t_bound_box::t_bound_box() :
-bottomleft(), topright() {
-}
-
-t_bound_box::t_bound_box(const t_bound_box& src) :
-bottomleft(src.bottom_left()), topright(src.top_right()) {
-}
-
-t_bound_box::t_bound_box(float _left, float _bottom, float _right, float _top) :
-bottomleft(_left, _bottom), topright(_right, _top) {
-}
-
-t_bound_box::t_bound_box(const t_point& _bottomleft, const t_point& _topright) :
-bottomleft(_bottomleft), topright(_topright) {
-}
-
-t_bound_box::t_bound_box(const t_point& _bottomleft, float width, float height) :
-bottomleft(_bottomleft), topright(_bottomleft) {
-    topright.offset(width, height);
-}
-
-/******************************************
- * begin t_color function definitions *
- ******************************************/
-
-t_color::t_color(uint_fast8_t r, uint_fast8_t g, uint_fast8_t b) :
-red(r),
-green(g),
-blue(b) {
-}
-
-t_color::t_color(const t_color& src) :
-red(src.red),
-green(src.green),
-blue(src.blue) {
-}
-
-t_color::t_color() :
-red(0),
-green(0),
-blue(0) {
-}
-
-t_color::t_color(color_types src) {
-    *this = src;
-}
-
-bool t_color::operator==(const t_color& rhs) const {
-    return red == rhs.red
-        && green == rhs.green
-        && blue == rhs.blue;
-}
-
-bool t_color::operator!=(const t_color& rhs) const {
-    return !(*this == rhs);
-}
-
-
-#ifndef NO_GRAPHICS
-
-color_types t_color::operator=(color_types color_enum) {
-    *this = predef_colors[color_enum];
-    return color_enum;
-}
-
-bool t_color::operator==(color_types rhs) const {
-    const t_color& test = predef_colors[rhs];
-    if (test == *this) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-#else /* WITHOUT GRAPHICS */
-
-color_types t_color::operator=(color_types color_enum) {
-    *this = t_color(0, 0, 0);
-    return BLACK;
-}
-
-bool t_color::operator==(color_types rhs) const {
-    return false;
-}
-
-#endif /* NO_GRAPHICS */
-
-bool t_color::operator!=(color_types rhs) const {
-    return !(*this == rhs);
-}
-
-// bool t_color::operator> (color_types rhs) const {
-// 	auto color_index = std::find(predef_colors.begin(), predef_colors.end(), *this);
-// 	if (color_index != predef_colors.end()) {
-// 		return (color_index - predef_colors.begin()) > rhs;
-// 	} else {
-// 		return false;
-// 	}
-// }
-
-// bool t_color::operator< (color_types rhs) const {
-// 	auto color_index = std::find(predef_colors.begin(), predef_colors.end(), *this);
-// 	if (color_index != predef_colors.end()) {
-// 		return (color_index - predef_colors.begin()) < rhs;
-// 	} else {
-// 		return false;
-// 	}
-// }
-
-
 
 #ifdef WIN32
 
@@ -5415,25 +5079,4 @@ static void init_cairo() {
     cairo_xlib_surface_set_size(x11_state.cairo_surface, x11_state.attributes.width, x11_state.attributes.height);
     x11_state.ctx = cairo_create(x11_state.cairo_surface);
     cairo_set_antialias(x11_state.ctx, CAIRO_ANTIALIAS_NONE); // Turn off anti-aliasing
-}
-
-void fillrect_cairo(double x, double y, double width, double height, int offsetx, int offsety) {
-    if (rect_off_screen(x - width/2, y - height/2, x + width/2, y + height/2))
-        return;
-
-    if (x11_state.ctx == NULL)
-        return;
-
-    double xscreen = (xworld_to_scrn(x));
-    double yscreen = (yworld_to_scrn(y));
-    double widthscreen = xworld_to_scrn(x+width) - xscreen;
-    double heightscreen = yworld_to_scrn(y+height) - yscreen;
-
-    cairo_set_source_rgba(x11_state.ctx,
-        0.5,
-        0.8,
-        0.3,
-        0.3);
-    cairo_rectangle(x11_state.ctx, xscreen + offsetx, yscreen + offsety, widthscreen, heightscreen);
-    cairo_fill(x11_state.ctx);
 }

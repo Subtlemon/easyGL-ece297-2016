@@ -23,8 +23,8 @@ PLATFORM = X11
 #PLATFORM = WIN32
 #PLATFORM = NO_GRAPHICS
 
-HDR = graphics.h fontcache.h graphics_state.h easygl_constants.h
-SRC = graphics.cpp fontcache.cpp graphics_state.cpp example.cpp 
+HDR = graphics.h fontcache.h graphics_state.h easygl_constants.h graphics_types.h
+SRC = graphics.cpp fontcache.cpp graphics_state.cpp example.cpp graphics_types.cpp
 EXE = example
 BACKUP_FILENAME=`date "+backup-%Y%m%d-%H%M.zip"`
 FLAGS = -g -Wall -Wextra -pedantic -D$(PLATFORM) -std=c++11
@@ -40,7 +40,7 @@ ifeq ($(PLATFORM),X11)
 	FLAGS += $(INCLUDE_FLAGS) $(shell pkg-config --cflags freetype2) # evaluates to the correct include flags for the freetype headers
 endif
 
-$(EXE): graphics.o fontcache.o graphics_state.o example.o
+$(EXE): graphics.o fontcache.o graphics_state.o example.o graphics_types.o
 	g++ $(FLAGS) $^ $(GRAPHICS_LIBS) -o $(EXE)
 
 # A generic make rule for creating a .o file from an identically named (sans extension) .cpp file
