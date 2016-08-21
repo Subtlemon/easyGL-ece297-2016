@@ -248,7 +248,7 @@ void drawscreen(void) {
         drawline(textsquare.bottom_left(), textsquare.top_right());
         drawline(textsquare.left(), textsquare.top(), textsquare.right(), textsquare.bottom());
 
-        setcolor(BLACK);
+        setcolor(t_color(0, 0, 0, 100));
         settextattrs(14, 0); // set a reasonable font size, and zero rotation.
         drawtext(textsquare.get_xcenter(), textsquare.bottom(), "0 degrees", textsquare.get_width(), textsquare.get_height());
         settextrotation(90);
@@ -299,7 +299,73 @@ void drawscreen(void) {
         drawtext_in(rect, "drawrect");
         drawrect(rect);
     }
+    
+    /*********
+     * Draw some cairo things
+     *********/
+    {
+        setfontsize(10);
 
+        // Transparent lines
+        for (int i = 1; i <= 2; ++i)
+        {
+            int offsetY = 50*i;
+            if (i == 1) {setlinestyle(SOLID, ROUND); setcolor(t_color(0, 255, 0, 255/2));}
+            else {setlinestyle(DASHED, BUTT); setcolor(t_color(255, 0, 0, 255/2));}
+            drawtext(200, 900+offsetY, "Thin line (width 1)", 200.0, FLT_MAX);
+            setlinewidth(1);
+            drawline(100, 920+offsetY, 300, 920+offsetY);
+            drawtext(500, 900+offsetY, "Width 3 Line", 200.0, FLT_MAX);
+            setlinewidth(3);
+            drawline(400, 920+offsetY, 600, 920+offsetY);
+            drawtext(800, 900+offsetY, "Width 6 Line", 200.0, FLT_MAX);
+            setlinewidth(6);
+            drawline(700, 920+offsetY, 900, 920+offsetY);
+        }
+        
+        // Transparent rectangles using fillrect and drawrect
+        setlinestyle(SOLID);
+        setlinewidth(3);
+        setcolor(t_color(255, 0, 0, 255/2));
+        fillrect(250, -100, 800, -50);
+        drawrect(250, -100, 800, -50);
+        setcolor(t_color(0, 0, 255, 255/2));
+        fillrect(250, -100-50, 800, -50-50);
+        drawrect(250, -100-50, 800, -50-50);
+        setlinestyle(DASHED);
+        setcolor(t_color(100, 200, 0, 255/2));
+        fillrect(300, -100-25, 750, -50-25);
+        drawrect(300, -100-25, 750, -50-25);
+        
+        // Polygons
+        t_point polypts[4] = {
+            {685, 380},
+            {615, 500},
+            {765, 500},
+            {835, 380}};
+        t_point polypts2[3] = {
+            {500, 380},
+            {425, 500},
+            {575, 500}};
+        setcolor(t_color(255, 100, 255, 255/2));
+        fillpoly(polypts, 4);
+        setcolor(t_color(100, 100, 255, 255/2));
+        fillpoly(polypts2, 3);
+        
+        setlinewidth(1);
+    }
+
+    /*********
+     * Do some things in screen coordinates
+     *********/
+    {
+        set_coordinate_system(GL_SCREEN);
+        setcolor(t_color(255, 0, 0));
+        setlinestyle(SOLID);
+        drawline(100, 100, 300, 300);
+        set_coordinate_system(GL_WORLD);
+    }
+    
     /*********
      * Draw some example text, with the bounding box functions
      *********/
@@ -357,50 +423,11 @@ void drawscreen(void) {
         drawline(100, 920, 300, 920);
         drawtext(500, 900, "Width 3 Line", 200.0, FLT_MAX);
         setlinewidth(3);
+        setlinestyle(SOLID, ROUND);
         drawline(400, 920, 600, 920);
         drawtext(800, 900, "Width 6 Line", 200.0, FLT_MAX);
         setlinewidth(6);
         drawline(700, 920, 900, 920);
-    }
-
-    /********
-     * Draw some cairo things
-     *********/
-    {
-        setfontsize(10);
-
-        // Lines
-        for (int i = 1; i <= 2; ++i)
-        {
-            int offsetY = 50*i;
-            if (i == 1) {setlinestyle(SOLID); setcolor(t_color(0, 255, 0, 255/2));}
-            else {setlinestyle(DASHED); setcolor(t_color(255, 0, 0, 255/2));}
-            drawtext(200, 900+offsetY, "Thin line (width 1)", 200.0, FLT_MAX);
-            setlinewidth(1);
-            drawline(100, 920+offsetY, 300, 920+offsetY);
-            drawtext(500, 900+offsetY, "Width 3 Line", 200.0, FLT_MAX);
-            setlinewidth(3);
-            drawline(400, 920+offsetY, 600, 920+offsetY);
-            drawtext(800, 900+offsetY, "Width 6 Line", 200.0, FLT_MAX);
-            setlinewidth(6);
-            drawline(700, 920+offsetY, 900, 920+offsetY);
-        }
-        
-        // Rectangles
-        setlinestyle(SOLID);
-        setlinewidth(3);
-        setcolor(t_color(255, 0, 0, 255/2));
-        fillrect(250, -100, 800, -50);
-        drawrect(250, -100, 800, -50);
-        
-        setcolor(t_color(0, 0, 255, 255/2));
-        fillrect(250, -100-50, 800, -50-50);
-        drawrect(250, -100-50, 800, -50-50);
-        
-        setlinestyle(DASHED);
-        setcolor(t_color(100, 200, 0, 255/2));
-        fillrect(300, -100-25, 750, -50-25);
-        drawrect(300, -100-25, 750, -50-25);
     }
 
     /********

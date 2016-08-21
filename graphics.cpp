@@ -493,7 +493,7 @@ static float yworld_to_post(float worldy);
 static void force_setcolor(int cindex);
 static void force_setcolor(const t_color& new_color);
 static void update_brushes();
-static void force_setlinestyle(int linestyle);
+static void force_setlinestyle(int linestyle, int capstyle = CapButt);
 static void force_setlinewidth(int linewidth);
 static void force_settextattrs(int pointsize, int degrees);
 
@@ -687,6 +687,8 @@ static int xworld_to_scrn(float worldx) {
 }
 
 static float xworld_to_scrn_fl(float worldx) {
+    if (gl_state.currentcoordinatesystem == GL_SCREEN) return worldx;
+    
     float winx;
 
     winx = (worldx - trans_coord.xleft) * trans_coord.wtos_xmult;
@@ -715,6 +717,8 @@ static int yworld_to_scrn(float worldy) {
 }
 
 static float yworld_to_scrn_fl(float worldy) {
+    if (gl_state.currentcoordinatesystem == GL_SCREEN) return worldy;
+    
     float winy;
 
     winy = (worldy - trans_coord.ytop) * trans_coord.wtos_ymult;
@@ -806,19 +810,19 @@ static void update_brushes() {
                 x11_state.current_gc,
                 x11_convert_to_xcolor(gl_state.foreground_color)
                 );
-            XRenderColor xr_textcolor;
-            xr_textcolor.red = (gl_state.foreground_color.red << 8);
-            xr_textcolor.green = (gl_state.foreground_color.green << 8);
-            xr_textcolor.blue = (gl_state.foreground_color.blue << 8);
-            xr_textcolor.alpha = 0xffff;
-            XftColorAllocValue(
-                x11_state.display,
-                x11_state.visual_info.visual,
-                x11_state.colormap_to_use,
-                &xr_textcolor,
-                &x11_state.xft_currentcolor
-                );
         }
+        XRenderColor xr_textcolor;
+        xr_textcolor.red = (gl_state.foreground_color.red << 8);
+        xr_textcolor.green = (gl_state.foreground_color.green << 8);
+        xr_textcolor.blue = (gl_state.foreground_color.blue << 8);
+        xr_textcolor.alpha = (gl_state.foreground_color.alpha << 8);
+        XftColorAllocValue(
+            x11_state.display,
+            x11_state.visual_info.visual,
+            x11_state.colormap_to_use,
+            &xr_textcolor,
+            &x11_state.xft_currentcolor
+            );
 #else /* Win32 */
         int win_linestyle, linewidth;
         LOGBRUSH lb;
@@ -915,19 +919,21 @@ t_color getcolor() {
 
 /* Sets the current linestyle to linestyle in the graphics context.
  * Note SOLID is 0 and DASHED is 1 for linestyle. 
+ * capstyle can be 0 (butt), or 1 (round)
  */
-static void force_setlinestyle(int linestyle) {
+static void force_setlinestyle(int linestyle, int capstyle) {
     gl_state.currentlinestyle = linestyle;
+    gl_state.currentlinecap = capstyle;
 
     if (gl_state.disp_type == SCREEN) {
 
 #ifdef X11
-        // XLIB
+        // XLIB DASH AND CAP
         static int x_vals[2] = {LineSolid, LineOnOffDash};
         XSetLineAttributes(x11_state.display, x11_state.current_gc, gl_state.currentlinewidth,
-            x_vals[linestyle], CapButt, JoinMiter);
+            x_vals[linestyle], capstyle == 0 ? CapButt : CapRound, JoinMiter);
         
-        // CAIRO
+        // CAIRO DASH
         static double dashes[] = {
             5.0,  /* ink */
             3.0,  /* skip */
@@ -939,6 +945,15 @@ static void force_setlinestyle(int linestyle) {
         else 
         {
             cairo_set_dash(x11_state.ctx, dashes, 0, 0);
+        }
+        // CAIRO CAP
+        if (capstyle == 0)
+        {
+            cairo_set_line_cap(x11_state.ctx, CAIRO_LINE_CAP_BUTT);
+        }
+        else
+        {
+            cairo_set_line_cap(x11_state.ctx, CAIRO_LINE_CAP_ROUND);
         }
 #else  // Win32
         LOGBRUSH lb;
@@ -976,9 +991,9 @@ static void force_setlinestyle(int linestyle) {
 /* Change the linestyle in the graphics context only if it differs from the current 
  * linestyle.
  */
-void setlinestyle(int linestyle) {
-    if (linestyle != gl_state.currentlinestyle)
-        force_setlinestyle(linestyle);
+void setlinestyle(int linestyle, int capstyle) {
+    if (linestyle != gl_state.currentlinestyle || capstyle != gl_state.currentlinecap)
+        force_setlinestyle(linestyle, capstyle);
 }
 
 /* Sets current linewidth in the graphics context.
@@ -993,7 +1008,7 @@ static void force_setlinewidth(int linewidth) {
         // X11
         static int x_vals[2] = {LineSolid, LineOnOffDash};
         XSetLineAttributes(x11_state.display, x11_state.current_gc, linewidth,
-            x_vals[gl_state.currentlinestyle], CapButt, JoinMiter);
+            x_vals[gl_state.currentlinestyle], gl_state.currentlinecap == 0 ? CapButt : CapRound, JoinMiter);
         
         // CAIRO
         cairo_set_line_width(x11_state.ctx, linewidth);
@@ -1577,7 +1592,8 @@ clearscreen(void) {
  * correctness.                                                       */
 static int
 rect_off_screen(float x1, float y1, float x2, float y2) {
-
+    if (gl_state.currentcoordinatesystem == GL_SCREEN) return 0;
+    
     float xmin, xmax, ymin, ymax;
 
     xmin = min(trans_coord.xleft, trans_coord.xright);
@@ -2035,8 +2051,21 @@ fillpoly(t_point *points, int npoints) {
             transpoints[i].y = (long) yworld_to_scrn(points[i].y);
         }
 #ifdef X11
-        XFillPolygon(x11_state.display, *(x11_state.draw_area), x11_state.current_gc,
-            transpoints, npoints, Complex, CoordModeOrigin);
+        if (use_cairo())
+        {
+            cairo_move_to(x11_state.ctx, transpoints[0].x, transpoints[0].y);
+            for (int i = 1; i < npoints; ++i)
+            {
+                cairo_line_to(x11_state.ctx, transpoints[i].x, transpoints[i].y);
+            }
+            cairo_close_path(x11_state.ctx);
+            cairo_fill(x11_state.ctx);
+        }
+        else
+        {
+            XFillPolygon(x11_state.display, *(x11_state.draw_area), x11_state.current_gc,
+                transpoints, npoints, Complex, CoordModeOrigin);
+        }
 #else
         HPEN hOldPen;
         /* NULL_PEN is a Windows stock object which does not draw anything. Set current *
@@ -2367,6 +2396,12 @@ void drawtext(float xc, float yc, const std::string& str_text, float boundx, flo
         fprintf(gl_state.ps, "(%s) 0 0 rcenshow\n", text);
         fprintf(gl_state.ps, "grestore\n");
     }
+}
+
+void
+set_coordinate_system(t_coordinate_system coord)
+{
+    gl_state.currentcoordinatesystem = coord;
 }
 
 void
@@ -3425,6 +3460,9 @@ x11_event_loop(void (*act_on_mousebutton)(float x, float y, t_event_buttonPresse
     int bnum;
     float x, y;
 
+    Atom wmDeleteMessage = XInternAtom(x11_state.display, "WM_DELETE_WINDOW", false);
+    XSetWMProtocols(x11_state.display, x11_state.toplevel, &wmDeleteMessage, 1);
+    
 #define OFF 1
 #define ON 0
 
@@ -3570,6 +3608,17 @@ x11_event_loop(void (*act_on_mousebutton)(float x, float y, t_event_buttonPresse
                         act_on_keypress(keyb_buffer[0], keysym);
                 }
 
+                break;
+            case ClientMessage:
+                if ((int)report.xclient.data.l[0] == (int)wmDeleteMessage){
+                    // Close button has been clicked
+#ifdef VERBOSE
+                    std::cout << "Window close requested" << std::endl;
+#endif
+                    gl_state.ProceedPressed = true;
+                    flushinput();
+                    return;
+                }
                 break;
         }
     }
@@ -5144,6 +5193,7 @@ void draw_surface(const Surface& surface, unsigned x, unsigned y) {
  ***********************************************/
 
 static void init_cairo() {
+#ifdef X11
     // Destory old cairo things
     cairo_destroy(x11_state.ctx);
     cairo_surface_destroy(x11_state.cairo_surface);
@@ -5157,4 +5207,5 @@ static void init_cairo() {
     cairo_xlib_surface_set_size(x11_state.cairo_surface, x11_state.attributes.width, x11_state.attributes.height);
     x11_state.ctx = cairo_create(x11_state.cairo_surface);
     cairo_set_antialias(x11_state.ctx, CAIRO_ANTIALIAS_NONE); // Turn off anti-aliasing
+#endif // X11
 }

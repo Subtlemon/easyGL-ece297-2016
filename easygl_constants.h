@@ -37,6 +37,31 @@ enum color_types {
 enum line_types {
     SOLID, DASHED
 };
+enum line_caps {
+    BUTT = 0, ROUND
+};
+
+/**
+ * To distinguish drawing to screen coordinates or world coordinates when using
+ * a function such as drawline(world/screen coordates)
+ */
+typedef enum {
+    GL_WORLD = 0,
+    GL_SCREEN = 1
+} t_coordinate_system;
+
+/**
+ * @brief Enum to distinguish drawing to screen or to offscreen buffer.
+ */
+typedef enum {
+    ON_SCREEN = 0,
+    OFF_SCREEN
+} t_draw_to;
+
+enum e_draw_mode {
+    DRAW_NORMAL = 0,
+    DRAW_XOR
+};
 
 
 /* 
