@@ -216,13 +216,13 @@ struct t_gl_state {
     bool get_keypress_input, get_mouse_move_input;
     bool redraw_needed;
 
-    t_gl_state()
-    : initialized(false)
-    , disp_type(SCREEN)
-    , currentlinecap(0)
-    , currentlinestyle(0)
-    , currentcoordinatesystem(GL_WORLD)
-    , background_color(0xFF, 0xFF, 0xCC) {
+    t_gl_state() {
+        initialized = false;
+        disp_type = SCREEN;
+        currentlinecap = 0;
+        currentlinestyle = 0;
+        currentcoordinatesystem = GL_WORLD;
+        background_color = t_color(0xFF, 0xFF, 0xCC);
     }
 };
 
