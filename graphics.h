@@ -6,6 +6,7 @@
 
 #include "easygl_constants.h"
 #include "graphics_types.h"
+#include "Surface.h"
 
 // Set X11 by default, if neither NO_GRAPHICS nor WIN32 are defined
 #ifndef NO_GRAPHICS
