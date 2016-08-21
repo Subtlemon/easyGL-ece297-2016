@@ -11,12 +11,18 @@ Surface::Surface(const char* filePath) {
 }
 
 Surface::~Surface() {
+    safeDestroySurface();
+}
+
+// safe delete
+void Surface::safeDestroySurface() {
     if (mSurface == NULL) return; // nothing to be done
-    if (surfaces[mSurface] == 1)
-        cairo_surface_destroy(mSurface);
-    else if (surfaces[mSurface] < 1)
-        std::cerr << "Yeah notify Vaughn that Harry screwed up again" << std::endl;
     --surfaces[mSurface];
+    if (surfaces[mSurface] == 0) {
+        surfaces.erase(mSurface);
+        cairo_surface_destroy(mSurface);
+    }
+    mSurface = NULL;
 }
 
 // assignment operator
@@ -33,8 +39,7 @@ Surface::Surface(const Surface& surface) {
 }
 
 void Surface::setSurface(const char* filePath) {
-    --surfaces[mSurface];
-    cairo_surface_destroy(mSurface);
+    safeDestroySurface();
     mSurface = cairo_image_surface_create_from_png (filePath);
     ++surfaces[mSurface];
     switch(cairo_surface_status(mSurface)) {
@@ -64,10 +69,8 @@ void Surface::setSurface(const char* filePath) {
             break;
     }
 
-    // should only reach this point if unsuccessfull
-    --surfaces[mSurface];
-    cairo_surface_destroy(mSurface);
-    mSurface = NULL;
+    // should only reach this point if unsuccessful
+    safeDestroySurface();
 }
 
 cairo_surface_t* Surface::getSurface() const {

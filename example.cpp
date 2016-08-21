@@ -443,6 +443,11 @@ void drawscreen(void) {
     // Screen redraw will get rid of a rubber line.  
     have_rubber_line = false;
 
+    /********
+     * Draw a small png
+     ********/
+    draw_surface(load_png_from_file("small_image.png"), 100, 100);
+
 #ifdef DRAW_BUFFER
     copy_off_screen_buffer_to_screen();
 #endif

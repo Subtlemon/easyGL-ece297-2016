@@ -26,6 +26,8 @@ class Surface {
     private:
         cairo_surface_t* mSurface;
 
+        void safeDestroySurface();
+
         // static hash table to keep track of surfaces
         static std::unordered_map<cairo_surface_t*, unsigned> surfaces;
 };

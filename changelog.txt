@@ -3,3 +3,10 @@
   - push to screen using copy_off_screen_buffer_to_screen()
 - moved FontCache to its own file fontcache
 - moved t_x11_state and t_gl_state to their own file graphics_state
+- added Cairo transparency in t_color
+- added Surface class to load/draw pngs
+  - Surface is its own class so users don't have to deal with
+  initializing/freeing cairo surfaces
+- added currentcoordinatesystem to gl_state to decide what coordinates the
+draw functions draw to
+  - GL_SCREEN turns off world_to_scrn translations
