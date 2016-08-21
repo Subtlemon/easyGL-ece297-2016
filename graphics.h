@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <cstdint>
+
 #include "easygl_constants.h"
 #include "graphics_types.h"
 
@@ -147,8 +148,10 @@ void setcolor_by_name(std::string cname);
 /* Get the current color */
 t_color getcolor(void);
 
-/* Sets the line style to the specified line_style, SOLID or DASHED */
-void setlinestyle(int linestyle);
+/* Sets the line style to the specified line_style, SOLID or DASHED
+ * capstyle can be BUTT or ROUND, default is BUTT
+ */
+void setlinestyle(int linestyle, int capstyle = BUTT);
 
 /* Sets the line width in pixels (for screen output) or points (1/72 of an inch)
  * for PostScript output. A value of 0 means thinnest possible line.
@@ -288,6 +291,11 @@ void drawtext(
 void drawtext_in(const t_bound_box& bbox, const std::string& text);
 void drawtext_in(const t_bound_box& bbox, const std::string& text, float tolerance);
 
+/**
+ * World coordinates = in the scene
+ * Screen coordinates = for the UI
+ */
+void set_coordinate_system(t_coordinate_system coord);
 
 /*************************** ADVANCED FUNCTIONS ***************************/
 
@@ -299,9 +307,6 @@ void flushinput(void);
 /* DRAW_NORMAL is the default mode (overwrite, also known as copy_pen).
  * Can use DRAW_XOR for fast rubber-banding.
  */
-enum e_draw_mode {
-    DRAW_NORMAL = 0, DRAW_XOR
-};
 void set_draw_mode(enum e_draw_mode draw_mode);
 
 /**
@@ -314,14 +319,6 @@ void change_button_text(const char *button_text, const char *new_button_text);
  * yourself because of an expose.
  */
 void draw_message(void);
-
-/**
- * @brief Enum to distinguish drawing to screen or to offscreen buffer.
- */
-typedef enum {
-    ON_SCREEN = 0,
-    OFF_SCREEN
-} t_draw_to;
 
 /**
  * @brief Changes what all the drawX functions draws to.

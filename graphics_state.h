@@ -1,7 +1,7 @@
 #ifndef GRAPHICS_STATE_H
 #define GRAPHICS_STATE_H
 
-#include "graphics.h"
+#include "easygl_constants.h"
 #include "fontcache.h"
 
 /**********************************
@@ -203,9 +203,11 @@ struct t_gl_state {
     t_color background_color;
     t_color foreground_color;
     int currentlinestyle;
+    int currentlinecap;
     int currentlinewidth;
     int currentfontsize;
     int currentfontrotation;
+    t_coordinate_system currentcoordinatesystem;
     e_draw_mode current_draw_mode;
     FILE *ps;
     bool ProceedPressed;
@@ -217,6 +219,9 @@ struct t_gl_state {
     t_gl_state()
     : initialized(false)
     , disp_type(SCREEN)
+    , currentlinecap(0)
+    , currentlinestyle(0)
+    , currentcoordinatesystem(GL_WORLD)
     , background_color(0xFF, 0xFF, 0xCC) {
     }
 };
